@@ -152,11 +152,17 @@ class PlayQueue:
         #self.stop()
 
     def display(self):
-        system('cls' if os.name == 'nt' else 'clear')
+        txt=""
         if self.cur is not None:
-            print("# " if self.bPaused else "> ", self.cur, sep="")
+            txt+=("# " if self.bPaused else "> ")+self.cur+"\n"
         for i in self.content:
-            print("  ", i.desc(), sep="")
+            txt+="  "+i.desc()+"\n"
+        system('cls' if os.name == 'nt' else 'clear')
+        print(txt, end="")
+        #if self.cur is not None:
+        #    print("# " if self.bPaused else "> ", self.cur, sep="")
+        #for i in self.content:
+        #    print("  ", i.desc(), sep="")
 
     def getSize(self):
         return len(self.content)+int(self.cur is not None)
