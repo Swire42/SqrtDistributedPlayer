@@ -154,7 +154,7 @@ class PlayQueue:
     def display(self):
         system('cls' if os.name == 'nt' else 'clear')
         if self.cur is not None:
-            print("> ", self.cur, sep="")
+            print("# " if self.bPaused else "> ", self.cur, sep="")
         for i in self.content:
             print("  ", i.desc(), sep="")
 
