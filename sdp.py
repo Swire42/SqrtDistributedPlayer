@@ -1,12 +1,11 @@
 import os
+import shutil
 import subprocess
 import random
 import math
 import signal
 
 from kb import*
-
-displaySize=30
 
 playTool="sox"
 listDirTool="find"
@@ -30,11 +29,7 @@ Starting "settings.py" assisted-creation :
 (Note : you can always change this later by editing "settings.py")
 PLEASE NOTE THAT THERE ARE BARELY NO SAFETY CHECKS DONE ON WHAT YOU TYPE, TYPE WISELY''')
     settingsFile=open('settings.py', mode='w')
-    settingsFile.write('rootPath="'+input("Where is your music? [full path] ")+'"\n')
-
-    for i in range(100,0,-1):
-        print(i)
-    settingsFile.write('displaySize='+input("What is your desired height for the player? [a ruler is displayed above to help you] ")+'\n')
+    settingsFile.write('rootPath="'+input("Where is your music? [full path] ")+'"\n\n')
 
     settingsFile.write('playTool="'+input("Which of these players do you want to use/is installed on your system? [vlc/sox] ")+'"\n')
     settingsFile.write('''\
@@ -202,11 +197,19 @@ class PlayQueue:
         #self.stop()
 
     def display(self):
+        width, height=shutil.get_terminal_size()
         txt=""
         if self.cur is not None:
-            txt+=("# " if self.bPaused else "> ")+self.cur+"\n"
-        for i in self.content:
-            txt+="  "+i.desc()+"\n"
+            line=("# " if self.bPaused else "> ")+self.cur
+            if len(line)>width:
+                line=line[:width-3]+"..."
+            txt+=line+"\n"
+            height-=1
+        for i in self.content[:height-1]:
+            line="  "+i.desc()
+            if len(line)>width:
+                line=line[:width-3]+"..."
+            txt+=line+"\n"
         clearTerminal()
         print(txt, end="")
         #if self.cur is not None:
@@ -218,7 +221,7 @@ class PlayQueue:
         return len(self.content)+int(self.cur is not None)
 
     def fill(self):
-        while self.getSize()<displaySize:
+        while self.getSize()<100:
             if not rootDir.addToQueue():
                 break
 
