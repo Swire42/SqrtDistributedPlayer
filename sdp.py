@@ -115,8 +115,8 @@ class PlayQueue:
     def tick(self):
         if not self.bPaused and playerProcess.poll() is not None:
             self.play()
-            self.display()
-            print("")
+            outputManager.lastCmd=""
+            outputManager.display()
 
     def togglePause(self):
         if self.bPaused:
@@ -199,7 +199,7 @@ class Song:
         if self.filename is None:
             return "Error - no filename"
         elif self.title is None:
-            return self.filename[:-4] if self.filename[-4]=='.' else self.filename
+            return self.filename
         else:
             # build using best format
             if self.artist is None and self.album is None:
@@ -215,6 +215,7 @@ class Song:
     def play(self):
         if self.filename is None:
             print("Error - no filename")
+            playQueue.stop()
             exit(2)
         global playerProcess
         if playerProcess.poll() is None:
@@ -276,6 +277,20 @@ class Directory:
             return result
         return False
 
+class OutputManager:
+    def __init__(self):
+        self.lastCmd=""
+        self.mode="playlist"
+
+    def display(self):
+        if self.mode=="playlist":
+            playQueue.display()
+            print(self.lastCmd)
+        elif self.mode!="manual":
+            print("Unknow output mode!")
+            playQueue.stop()
+            exit(2)
+
 ### UI funcs
 
 kb=KBHit()
@@ -287,6 +302,7 @@ rootDir=Directory()
 rootDir.append(Directory("/home/victor/Music/music/SomeRock/"))
 
 playQueue=PlayQueue()
+outputManager=OutputManager()
 
 
 while True:
@@ -295,26 +311,26 @@ while True:
         if c=='h':
             print('''\
 Help:
-- <Space> - Play/Pause (Pause=Stop when not available)
 - Help    - Display this help page
+- <Space> - Play/Pause (Pause=Stop when not available)
 - Next    - Skip to next song
 - Quit    - Stop and quit SMP
 - Stop    - Stop the music''')
 
         if c==' ':
             playQueue.togglePause()
-            playQueue.display()
-            print("")
+            outputManager.lastCmd="Play/Pause"
+            outputManager.display()
         if c=='n':
             playQueue.play()
-            playQueue.display()
-            print("Next")
+            outputManager.lastCmd="Next"
+            outputManager.display()
         if c=='q':
             playQueue.stop()
             print("Quit")
             break
         if c=='s':
             playQueue.stop()
-            playQueue.display()
-            print("Stop")
+            outputManager.lastCmd="Stop"
+            outputManager.display()
     playQueue.tick()
