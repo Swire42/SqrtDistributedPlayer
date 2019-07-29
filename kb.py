@@ -73,8 +73,10 @@ class KBHit:
         s = ''
 
         if os.name == 'nt':
-            return msvcrt.getch().decode('utf-8')
-
+            c=msvcrt.getwch()
+            if c=='\x00' or c=='\xe0': #special char
+                c+=msvcrt.getwch()
+            return c
         else:
             return sys.stdin.read(1)
 
@@ -90,7 +92,7 @@ class KBHit:
             return dr != []
 
 
-# Test    
+# Test
 if __name__ == "__main__":
 
     kb = KBHit()
@@ -101,7 +103,7 @@ if __name__ == "__main__":
 
         if kb.kbhit():
             c = kb.getch()
-            if ord(c) == 27: # ESC
+            if c == '\x1b': # ESC
                 break
             print(c)
 
