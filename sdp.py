@@ -10,7 +10,7 @@ path="/home/victor/Music/music/"
 playTool="sox"
 listDirTool="find"
 listFileTool="find"
-infoTool="mid3v2"
+infoTool="mutagen"
 fmtName="notext_tal"
 supportedTypes=[".mp3"]
 
@@ -50,13 +50,11 @@ else:
     print("Supported: find.")
     exit(1)
 
-if infoTool=="none":
-    infoCmd=None
-elif infoTool=="mid3v2":
-    infoCmd="mid3v2 -l {}"
-else:
+if infoTool=="mutagen":
+    from mutagen.id3 import ID3
+elif infoTool!="none":
     print("Unsupported metadata listing tool")
-    print("Supported: none, mid3v2.")
+    print("Supported: none, mutagen.")
     exit(1)
 
 if fmtName=="text":
@@ -190,15 +188,14 @@ class Song:
             self.gotInfo=True
         if self.filename is not None:
             # get file info
-            if infoTool=="mid3v2":
-                for line in runGetOutput(infoCmd, self.filename):
-                    line=line.decode('utf-8').strip()
-                    if line[0:4]=="TIT2":
-                        self.title=line[5:]
-                    elif line[0:4]=="TPE1":
-                        self.artist=line[5:]
-                    elif line[0:4]=="TALB":
-                        self.album=line[5:]
+            if infoTool=="mutagen":
+                info=ID3(self.filename)
+                if "TIT2" in info:
+                    self.title=info["TIT2"].text[0]
+                if "TPE1" in info:
+                    self.artist=info["TPE1"].text[0]
+                if "TALB" in info:
+                    self.album=info["TALB"].text[0]
 
     def desc(self):
         self.getInfo()
