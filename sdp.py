@@ -17,7 +17,7 @@ supportedTypes=[".mp3"]
 bShuffle=True
 bRepeat=True
 
-queueSize=30
+displaySize=30
 
 try:
     from settings import*
@@ -115,8 +115,8 @@ class PlayQueue:
     def tick(self):
         if not self.bPaused and playerProcess.poll() is not None:
             self.play()
-            outputManager.lastCmd=""
-            outputManager.display()
+            if mode=="playlist":
+                self.display()
 
     def togglePause(self):
         if self.bPaused:
@@ -162,7 +162,7 @@ class PlayQueue:
         return len(self.content)+int(self.cur is not None)
 
     def fill(self):
-        while self.getSize()<queueSize:
+        while self.getSize()<displaySize:
             if not rootDir.addToQueue():
                 break
 
@@ -277,35 +277,11 @@ class Directory:
             return result
         return False
 
-class OutputManager:
-    def __init__(self):
-        self.lastCmd=""
-        self.mode="playlist"
-
-    def display(self):
-        if self.mode=="playlist":
-            playQueue.display()
-            print(self.lastCmd)
-        elif self.mode!="manual":
-            print("Unknow output mode!")
-            playQueue.stop()
-            exit(2)
-
 ### UI funcs
 
-kb=KBHit()
+mode="playlist"
 
-
-rootDir=Directory()
-#rootDir.append(Directory("/home/victor/Music/music/SomeRock/Lions in the street/"))
-#rootDir.append(Directory("/home/victor/Music/music/SomeRock/Weezer/"))
-rootDir.append(Directory(path+"SomeRock/"))
-
-playQueue=PlayQueue()
-outputManager=OutputManager()
-
-
-while True:
+def UI_playlist():
     if kb.kbhit():
         c = kb.getch()
         if c=='h':
@@ -319,18 +295,31 @@ Help:
 
         if c==' ':
             playQueue.togglePause()
-            outputManager.lastCmd="Play/Pause"
-            outputManager.display()
+            playQueue.display()
         if c=='n':
             playQueue.play()
-            outputManager.lastCmd="Next"
-            outputManager.display()
+            playQueue.display()
         if c=='q':
             playQueue.stop()
             print("Quit")
-            break
+            exit(0)
         if c=='s':
             playQueue.stop()
-            outputManager.lastCmd="Stop"
-            outputManager.display()
+            playQueue.display()
+
+kb=KBHit()
+
+
+rootDir=Directory()
+#rootDir.append(Directory("/home/victor/Music/music/SomeRock/Lions in the street/"))
+#rootDir.append(Directory("/home/victor/Music/music/SomeRock/Weezer/"))
+rootDir.append(Directory(path+"SomeRock/"))
+
+playQueue=PlayQueue()
+
+
+
+while True:
+    if mode=="playlist":
+        UI_playlist()
     playQueue.tick()
