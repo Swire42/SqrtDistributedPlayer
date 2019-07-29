@@ -17,6 +17,7 @@ bShuffle=True
 bRepeat=True
 
 displaySize=30
+preloadInfo=True
 
 try:
     from settings import*
@@ -178,7 +179,8 @@ class Song:
 
         self.size=1
         self.gotInfo=False
-        self.getInfo()
+        if preloadInfo:
+            self.getInfo()
 
     def getInfo(self):
         if self.gotInfo:
@@ -188,13 +190,16 @@ class Song:
         if self.filename is not None:
             # get file info
             if infoTool=="mutagen":
-                info=ID3(self.filename)
-                if "TIT2" in info:
-                    self.title=info["TIT2"].text[0]
-                if "TPE1" in info:
-                    self.artist=info["TPE1"].text[0]
-                if "TALB" in info:
-                    self.album=info["TALB"].text[0]
+                try:
+                    info=ID3(self.filename)
+                    if "TIT2" in info:
+                        self.title=info["TIT2"].text[0]
+                    if "TPE1" in info:
+                        self.artist=info["TPE1"].text[0]
+                    if "TALB" in info:
+                        self.album=info["TALB"].text[0]
+                except:
+                    None
 
     def desc(self):
         self.getInfo()
@@ -234,6 +239,8 @@ class Song:
 class Directory:
     def __init__(self, p=None):
         self.path=p
+        if path is not None:
+            print("loading \"", self.path, "\"...", sep="")
         self.content=[]
         if p is not None:
             for line in runGetOutput(listDirCmd, self.path):
