@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 import subprocess
 import random
 import math
@@ -126,10 +127,10 @@ def scoreFunc(size):
 
 ### System funcs
 def runAlone(fmt, arg):
-    return subprocess.Popen([arg if i=="{}" else i for i in fmt.split()], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    return subprocess.Popen([arg if i=="{}" else i for i in fmt.split()], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
 def runGetOutput(fmt, arg):
-    p=subprocess.Popen([arg if i=="{}" else i for i in fmt.split()], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p=subprocess.Popen([arg if i=="{}" else i for i in fmt.split()], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
 def clearTerminal():
@@ -137,6 +138,12 @@ def clearTerminal():
 
 ### Playing vars & funcs
 playerProcess=subprocess.Popen("true")
+
+# in case of failure we still want to stop the player.
+def termPlayer():
+    playerProcess.terminate()
+atexit.register(termPlayer)
+
 playQueue=[]
 
 def isSong(filename):
@@ -363,11 +370,13 @@ class ModePlaylist:
             self.display()
         if c=='q':
             playQueue.stop()
-            print("Quit")
+            print("\nQuit")
             exit(0)
         if c=='s':
             playQueue.stop()
             self.display()
+        if c=='t':
+            print((time.time()-startTime)/(time.process_time()-startPT))
 
     def display(self):
         playQueue.display()
@@ -390,6 +399,7 @@ Help:
 - Next    - Skip to next song
 - Quit    - Stop and quit SDP
 - Stop    - Stop the music
+- Time    - Display saved CPU time as a ratio
 ### Press any key to continue ###''')
 ### UI funcs
 
@@ -410,12 +420,28 @@ newMode=None
 
 lastSize=shutil.get_terminal_size()
 
+playQueue.tick()
+
+n=0
+startTime=time.time()
+startPT=time.process_time()
+
 while True:
     if lastSize!=shutil.get_terminal_size():
         lastSize=shutil.get_terminal_size()
         mode.display()
     if kb.kbhit():
+        n=0
         mode.input(kb.getch())
         if newMode is not None:
             mode=newMode()
+            newMode=None
     playQueue.tick()
+
+    n+=1
+    if n<0.2*100: # 0.2s@100Hz
+        time.sleep(0.01)
+    elif n<0.2*100+2*10: # 2s@10Hz
+        time.sleep(0.1)
+    else: # 1Hz
+        time.sleep(1)
