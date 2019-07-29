@@ -299,7 +299,7 @@ kb=KBHit()
 rootDir=Directory()
 #rootDir.append(Directory("/home/victor/Music/music/SomeRock/Lions in the street/"))
 #rootDir.append(Directory("/home/victor/Music/music/SomeRock/Weezer/"))
-rootDir.append(Directory("/home/victor/Music/music/SomeRock/"))
+rootDir.append(Directory(path+"SomeRock/"))
 
 playQueue=PlayQueue()
 outputManager=OutputManager()
