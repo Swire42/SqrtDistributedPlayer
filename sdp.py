@@ -6,7 +6,6 @@ from signal import*
 
 from kb import*
 
-path="/home/victor/Music/music/"
 playTool="sox"
 listDirTool="find"
 listFileTool="find"
@@ -316,7 +315,7 @@ kb=KBHit()
 rootDir=Directory()
 #rootDir.append(Directory("/home/victor/Music/music/SomeRock/Lions in the street/"))
 #rootDir.append(Directory("/home/victor/Music/music/SomeRock/Weezer/"))
-rootDir.append(Directory(path+"SomeRock/"))
+rootDir.append(Directory(path))
 
 playQueue=PlayQueue()
 
