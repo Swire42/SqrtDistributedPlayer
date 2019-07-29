@@ -1,29 +1,77 @@
-from os import*
+import os
 import subprocess
-from random import*
-from math import*
-from signal import*
+import random
+import math
+import signal
 
 from kb import*
+
+displaySize=30
 
 playTool="sox"
 listDirTool="find"
 listFileTool="find"
-infoTool="mutagen"
+infoTool="none"
 fmtName="notext_tal"
 supportedTypes=[".mp3"]
 
 bShuffle=True
 bRepeat=True
 
-displaySize=30
-preloadInfo=True
+preloadInfo=False
 
 try:
     from settings import*
-    print("loaded \"settings.py\".")
+    print("Loaded \"settings.py\".")
 except:
-    print("no \"settings.py\" file loaded.")
+    print('''\
+No "settings.py" file loaded.
+Starting "settings.py" assisted-creation :
+(Note : you can always change this later by editing "settings.py")
+PLEASE NOTE THAT THERE ARE BARELY NO SAFETY CHECKS DONE ON WHAT YOU TYPE, TYPE WISELY''')
+    settingsFile=open('settings.py', mode='w')
+    settingsFile.write('rootPath="'+input("Where is your music? [full path] ")+'"\n')
+
+    for i in range(100,0,-1):
+        print(i)
+    settingsFile.write('displaySize='+input("What is your desired height for the player? [a ruler is displayed above to help you] ")+'\n')
+
+    settingsFile.write('playTool="'+input("Which of these players do you want to use/is installed on your system? [vlc/sox] ")+'"\n')
+    settingsFile.write('''\
+#listDirTool="find"
+#listFileTool="find"
+''')
+    answer=None
+    try:
+        import mutagen as importTest
+        settingsFile.write('infoTool="mutagen"\n')
+    except:
+        print("Mutagen (used to display titles, artists and albums) is not installed.")
+        while answer not in ['a','m','n']:
+            answer=input("Do you want to :\n- install Automatically (with \"pip install mutagen\") [a]\n- install Manually [m]\n- Not use it [n]\n- if you don't know, use [a].\n? ")
+        if answer=='a':
+            os.system("pip install mutagen")
+
+        if answer=='n':
+            settingsFile.write('infoTool="none"\n')
+        else:
+            settingsFile.write('infoTool="mutagen"\n')
+
+    settingsFile.write('''\
+#fmtName="notext_tal"
+#supportedTypes=[".mp3"]
+
+#bShuffle=True
+#bRepeat=True
+
+#preloadInfo=False
+''')
+    print('Finished creating "settings.py", please restart the player now.')
+    if answer=='m':
+        print("(don't forget to install mutagen before doing so...)")
+
+    settingsFile.close()
+    exit(0)
 
 
 # Apply settings
@@ -78,7 +126,7 @@ else:
     exit(1)
 
 def scoreFunc(size):
-    return round(sqrt(size))
+    return round(math.sqrt(size))
 
 
 ### System funcs
@@ -90,7 +138,7 @@ def runGetOutput(fmt, arg):
     return iter(p.stdout.readline, b'')
 
 def clearTerminal():
-    system('cls' if os.name == 'nt' else 'clear')
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 ### Playing vars & funcs
 playerProcess=subprocess.Popen("true")
@@ -146,11 +194,11 @@ class PlayQueue:
 
     def resume(self):
         self.bPaused=False
-        playerProcess.send_signal(SIGCONT)
+        playerProcess.send_signal(signal.SIGCONT)
 
     def pause(self):
         self.bPaused=True
-        playerProcess.send_signal(SIGSTOP)
+        playerProcess.send_signal(signal.SIGSTOP)
         #self.stop()
 
     def display(self):
@@ -243,7 +291,7 @@ class Song:
 class Directory:
     def __init__(self, p=None):
         self.path=p
-        if path is not None:
+        if self.path is not None:
             print("loading \"", self.path, "\"...", sep="")
         self.content=[]
         if p is not None:
@@ -268,7 +316,7 @@ class Directory:
         self.size=self.calcSize()
         self.shuffler=list(range(0,len(self.content)))
         if bShuffle:
-            shuffle(self.shuffler)
+            random.shuffle(self.shuffler)
 
     def calcSize(self):
         return sum([i.size for i in self.content])
@@ -280,7 +328,7 @@ class Directory:
             for i in self.shuffler[:maxi+1]:
                 for j in range(scoreFunc(self.content[i].size)):
                     tmp.append(i)
-            i=choice(tmp)
+            i=random.choice(tmp)
             self.shuffler.append(self.shuffler.pop(self.shuffler.index(i)))
             result=self.content[i].addToQueue()
             if not bRepeat:
@@ -351,7 +399,7 @@ kb=KBHit()
 rootDir=Directory()
 #rootDir.append(Directory("/home/victor/Music/music/SomeRock/Lions in the street/"))
 #rootDir.append(Directory("/home/victor/Music/music/SomeRock/Weezer/"))
-rootDir.append(Directory(path))
+rootDir.append(Directory(rootPath))
 
 playQueue=PlayQueue()
 
