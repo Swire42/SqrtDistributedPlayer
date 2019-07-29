@@ -89,6 +89,9 @@ def runGetOutput(fmt, arg):
     p=subprocess.Popen([arg if i=="{}" else i for i in fmt.split()], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
+def clearTerminal():
+    system('cls' if os.name == 'nt' else 'clear')
+
 ### Playing vars & funcs
 playerProcess=subprocess.Popen("true")
 playQueue=[]
@@ -106,6 +109,7 @@ class PlayQueue:
         self.content=[]
         self.cur=None
         self.bPaused=False
+        self.bShow=False
 
     def append(self, x):
         self.content.append(x)
@@ -113,7 +117,7 @@ class PlayQueue:
     def tick(self):
         if not self.bPaused and playerProcess.poll() is not None:
             self.play()
-            if mode=="playlist":
+            if self.bShow:
                 self.display()
 
     def togglePause(self):
@@ -155,7 +159,7 @@ class PlayQueue:
             txt+=("# " if self.bPaused else "> ")+self.cur+"\n"
         for i in self.content:
             txt+="  "+i.desc()+"\n"
-        system('cls' if os.name == 'nt' else 'clear')
+        clearTerminal()
         print(txt, end="")
         #if self.cur is not None:
         #    print("# " if self.bPaused else "> ", self.cur, sep="")
@@ -286,22 +290,20 @@ class Directory:
             return result
         return False
 
-### UI funcs
+### Commands-with-display Classes
 
-mode="playlist"
+class ModePlaylist:
+    def __init__(self):
+        playQueue.bShow=True
+        playQueue.display()
 
-def UI_playlist():
-    if kb.kbhit():
-        c = kb.getch()
+    def __del__(self):
+        playQueue.bShow=False
+
+    def input(self, c):
+        global newMode
         if c=='h':
-            print('''\
-Help:
-- Help    - Display this help page
-- <Space> - Play/Pause (Pause=Stop when not available)
-- Next    - Skip to next song
-- Quit    - Stop and quit SMP
-- Stop    - Stop the music''')
-
+            newMode=ModeHelp
         if c==' ':
             playQueue.togglePause()
             playQueue.display()
@@ -316,6 +318,33 @@ Help:
             playQueue.stop()
             playQueue.display()
 
+
+class ModeHelp:
+    def __init__(self):
+        self.state="finished"
+        clearTerminal()
+        print('''\
+Help:
+- Help    - Display this help page
+- <Space> - Play/Pause (Pause=Stop when not available)
+- Next    - Skip to next song
+- Quit    - Stop and quit SDP
+- Stop    - Stop the music
+### Press any key to continue ###''')
+
+    def input(self, c):
+        global newMode
+        if self.state=="finished":
+            newMode=ModePlaylist
+        else:
+            print("Unknown state in ModeHelp!")
+            playQueue.stop()
+            exit(2)
+
+### UI funcs
+
+
+
 kb=KBHit()
 
 
@@ -326,9 +355,12 @@ rootDir.append(Directory(path))
 
 playQueue=PlayQueue()
 
-
+mode=ModePlaylist()
+newMode=None
 
 while True:
-    if mode=="playlist":
-        UI_playlist()
+    if kb.kbhit():
+        mode.input(kb.getch())
+        if newMode is not None:
+            mode=newMode()
     playQueue.tick()
