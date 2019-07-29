@@ -78,7 +78,7 @@ class KBHit:
                 c+=msvcrt.getwch()
             return c
         else:
-            return sys.stdin.read(1)
+            return sys.stdin.buffer.read1(5).decode("utf-8") # This works as long as only one char has been inputed.
 
 
     def kbhit(self):
@@ -95,6 +95,7 @@ class KBHit:
 # Test
 if __name__ == "__main__":
 
+
     kb = KBHit()
 
     print('Hit any key, or ESC to exit')
@@ -105,6 +106,6 @@ if __name__ == "__main__":
             c = kb.getch()
             if c == '\x1b': # ESC
                 break
-            print(c)
+            print([c])
 
     kb.set_normal_term()
