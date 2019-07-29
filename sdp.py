@@ -161,7 +161,7 @@ class PlayQueue:
         if not self.bPaused and playerProcess.poll() is not None:
             self.play()
             if self.bShow:
-                self.display()
+                mode.display()
 
     def togglePause(self):
         if self.bPaused:
@@ -205,13 +205,13 @@ class PlayQueue:
                 line=line[:width-3]+"..."
             txt+=line+"\n"
             height-=1
-        for i in self.content[:height-1]:
+        for i in self.content[:height]:
             line="  "+i.desc()
             if len(line)>width:
                 line=line[:width-3]+"..."
             txt+=line+"\n"
         clearTerminal()
-        print(txt, end="")
+        print(txt.strip(), end="", flush=True)
         #if self.cur is not None:
         #    print("# " if self.bPaused else "> ", self.cur, sep="")
         #for i in self.content:
@@ -346,7 +346,7 @@ class Directory:
 class ModePlaylist:
     def __init__(self):
         playQueue.bShow=True
-        playQueue.display()
+        self.display()
 
     def __del__(self):
         playQueue.bShow=False
@@ -357,22 +357,31 @@ class ModePlaylist:
             newMode=ModeHelp
         if c==' ':
             playQueue.togglePause()
-            playQueue.display()
+            self.display()
         if c=='n':
             playQueue.play()
-            playQueue.display()
+            self.display()
         if c=='q':
             playQueue.stop()
             print("Quit")
             exit(0)
         if c=='s':
             playQueue.stop()
-            playQueue.display()
+            self.display()
+
+    def display(self):
+        playQueue.display()
 
 
 class ModeHelp:
     def __init__(self):
-        self.state="finished"
+        self.display()
+
+    def input(self, c):
+        global newMode
+        newMode=ModePlaylist
+
+    def display(self):
         clearTerminal()
         print('''\
 Help:
@@ -382,16 +391,6 @@ Help:
 - Quit    - Stop and quit SDP
 - Stop    - Stop the music
 ### Press any key to continue ###''')
-
-    def input(self, c):
-        global newMode
-        if self.state=="finished":
-            newMode=ModePlaylist
-        else:
-            print("Unknown state in ModeHelp!")
-            playQueue.stop()
-            exit(2)
-
 ### UI funcs
 
 
@@ -409,7 +408,12 @@ playQueue=PlayQueue()
 mode=ModePlaylist()
 newMode=None
 
+lastSize=shutil.get_terminal_size()
+
 while True:
+    if lastSize!=shutil.get_terminal_size():
+        lastSize=shutil.get_terminal_size()
+        mode.display()
     if kb.kbhit():
         mode.input(kb.getch())
         if newMode is not None:
