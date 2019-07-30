@@ -230,7 +230,7 @@ class PlayQueue:
                 line=line[:width-3]+"..."
             txt+=line+"\n"
         clearTerminal()
-        print(txt.strip(), end="", flush=True)
+        print(txt.strip('\n'), end="", flush=True)
         #if self.cur is not None:
         #    print("# " if self.bPaused else "> ", self.cur, sep="")
         #for i in self.content:
