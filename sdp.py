@@ -320,7 +320,6 @@ class Directory:
         self.path=p
         self.content=[]
         if self.path is not None:
-            print("loading \"", self.path, "\"...", sep="")
             for i in os.scandir(self.path):
                 if i.is_dir():
                     self.content.append(Directory(i.path))
@@ -479,8 +478,10 @@ def centered(txt, width):
 
 def displayStartPage():
     width, height=shutil.get_terminal_size()
-    clearTerminal()
+    txt=""
+
     if width<len(startText[2][0]): #too small
+        clearTerminal()
         print("...", end="", flush=True)
         return
 
@@ -500,29 +501,32 @@ def displayStartPage():
         height-=len(startLogo[iLogo])+1
 
     for i in range(height//2):
-        print("")
+        txt+='\n'
     height-=height//2
 
     if iLogo!=len(startLogo):
         for line in startLogo[iLogo]:
-            print(centered(line, width))
-        print("")
+            txt+=centered(line, width)+'\n'
+        txt+='\n'
 
     iLine=0
     for line in startText[iText]:
         iLine+=1
         if iLine<len(startText[iText]):
-            print(centered(line, width))
+            txt+=centered(line, width)+'\n'
         else:
-            print(centered(line, width), end="", flush=True)
+            txt+=centered(line, width)
 
     for i in range(height):
-        print("")
+        txt+='\n'
+
+    clearTerminal()
+    print(txt, end="", flush=True)
 
 ### UI Classes
 
 
-class ModePlaylist:
+class ModePlayqueue:
     def __init__(self):
         playQueue.bShow=True
         self.display()
@@ -537,6 +541,9 @@ class ModePlaylist:
         if c==' ':
             playQueue.togglePause()
             self.display()
+        if c=='a':
+            newMode=ModeAdd
+            addMode_state=ModeAdd_state()
         if c=='n':
             playQueue.play()
             self.display()
@@ -552,24 +559,106 @@ class ModePlaylist:
         playQueue.display()
 
 
+class ModeAdd_state:
+    def __init__(self):
+        self.cd(rootPath)
+        self.addList=[]
+
+    def cd(self, d):
+        self.dir=d
+        self.dirList=list(os.scandir(self.dir))
+        self.dirList.sort(key=lambda x: x.name)
+        self.idlen=math.ceil(math.log10(len(self.dirList)))
+        self.view=0
+        self.cursor=0
+
+    def up(self):
+        if self.cursor>0:
+            self.cursor-=1
+
+    def down(self):
+        if self.cursor<len(self.dirList)-1:
+            self.cursor+=1
+
+    def display(self):
+        width, height=shutil.get_terminal_size()
+        txt=""
+
+        # update view
+        self.view=min(self.view, max(0, len(self.dirList)-height)) # limit max view pos
+        self.view=min(self.view, self.cursor)                      # make sure we see cursor (go up)
+        self.view=max(self.view, self.cursor-height+1)             # make sure we see cursor (go down)
+
+        for i in range(self.view, self.view+height):
+            txt+='+' if self.dirList[i].path in self.addList else ' '
+            txt+=format(i, '0'+str(self.idlen)+'d')
+            txt+='>' if i==self.cursor else ' '
+            txt+=self.dirList[i].name
+            if i!=self.view+height-1:
+                txt+='\n'
+
+        clearTerminal()
+        print(txt, end="", flush=True)
+
+addMode_state=ModeAdd_state()
+
+class ModeAdd:
+    def __init__(self):
+        self.display()
+
+    def input(self, c):
+        global newMode
+        if c=='\x1b': # ESC
+            newMode=ModePlayqueue
+        elif c=='\x1b[A' or c=='\xe0H': # up arrow
+            addMode_state.up()
+            addMode_state.display()
+        elif c=='\x1b[B' or c=='\xe0P': # down arrow
+            addMode_state.down()
+            addMode_state.display()
+        elif c=='a':
+            addMode_state.add()
+            newMode=ModePlayqueue
+        if c=='q':
+            playQueue.stop()
+            print("\nQuit")
+            exit(0)
+
+    def display(self):
+        return addMode_state.display()
+
 class ModeHelp:
     def __init__(self):
         self.display()
 
     def input(self, c):
         global newMode
-        newMode=ModePlaylist
+        newMode=lastMode
 
     def display(self):
         clearTerminal()
+        if lastMode==ModePlayqueue:
+            print('''\
+### Help - Playqueue ###
+Playqueue:
+- [Space]   | Play/Pause (Pause=Stop when not available)
+- [n] Next  | Skip to next song
+- [Q] Quit  | Stop and quit SDP
+- [s] Stop  | Stop the music
+''')
+        else:
+            print('### UNKWOWN HELP ###')
+
         print('''\
-Help:
-- Help    - Display this help page
-- <Space> - Play/Pause (Pause=Stop when not available)
-- Next    - Skip to next song
-- Quit    - Stop and quit SDP
-- Stop    - Stop the music
+Modes:
+- [h] Help  | Display help page for the current mode
+- [a] Add   | Add a directory/file to the playlist
+- [q] Queue | Display playqueue
 ### Press any key to continue ###''')
+
+
+
+
 ### UI funcs
 
 
@@ -582,8 +671,9 @@ playDir=Directory()
 
 playQueue=PlayQueue()
 
-mode=ModePlaylist()
+mode=ModePlayqueue()
 newMode=None
+lastMode=None
 
 lastSize=shutil.get_terminal_size()
 
@@ -599,6 +689,7 @@ while True:
         n=0
         mode.input(kb.getch())
         if newMode is not None:
+            lastMode=type(mode)
             mode=newMode()
             newMode=None
     playQueue.tick()
