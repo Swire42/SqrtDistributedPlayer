@@ -130,7 +130,7 @@ def clearTerminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 ### Playing vars & funcs
-playerProcess=subprocess.Popen("true")
+playerProcess=subprocess.Popen('call' if os.name=='nt' else 'true') # no-op
 
 # in case of failure we still want to stop the player.
 def termPlayer():
