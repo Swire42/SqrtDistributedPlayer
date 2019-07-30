@@ -195,6 +195,8 @@ class PlayQueue:
             self.cur=self.content[0].desc()
             self.content[0].play()
             self.content.pop(0)
+        else:
+            self.bPaused=True
 
     def stop(self):
         self.bPaused=True
@@ -216,6 +218,9 @@ class PlayQueue:
         #self.stop()
 
     def display(self):
+        if self.getSize()==0:
+            return displayStartPage()
+
         width, height=shutil.get_terminal_size()
         txt=""
         if self.cur is not None:
@@ -241,7 +246,7 @@ class PlayQueue:
 
     def fill(self):
         while self.getSize()<100:
-            if not rootDir.addToQueue():
+            if not playDir.addToQueue():
                 break
 
 class Song:
@@ -358,7 +363,164 @@ class Directory:
             return result
         return False
 
-### Commands-with-display Classes
+### Start page
+
+startLogo=[
+    [
+        '''                               <QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ''',
+        '''                               mQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ''',
+        '''                              ]QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ''',
+        '''                              QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ''',
+        '''                             ]QQQQQ@                                 ''',
+        '''                             QQQQQQ'                                 ''',
+        '''                            jQQQQQP                                  ''',
+        '''                           .QQQQQQ(                                  ''',
+        '''                           jQQQQQE     aQmw,                         ''',
+        '''                          .QQQQQQ'    jQQQQQmc                       ''',
+        '''                          jQQQQQF     dQQQQQQQQw,                    ''',
+        '''                         _QQQQQW'     dQQQQQQQQQQgc                  ''',
+        '''                         jQQQQQF      dQQQQQQQQQQQQQa,               ''',
+        '''                        _QQQQQW'      dQQQQQQQQQQQQQQQg,             ''',
+        '''mmmmmmmmmmw             jQQQQQf       dQQQQQQQQQQQQQQQQQma.          ''',
+        '''QQQQQQQQQQQ/           _QQQQQQ`       dQQQQQQQQQQQQQQQQQQQQw,        ''',
+        '''QQQQQQQQQQQm.          dQQQQQf        dQQQQQQQQQQQQQQQQQQQQQQma.     ''',
+        '''?!!!!!4QQQQQL         _QQQQQ@         dQQQQQQQQQQQQQQQQQQQQQQQQQ/    ''',
+        '''      -QQQQQQ,        yQQQQQ[         dQQQQQQQQQQQQQQQQQQQQQQQQQQ    ''',
+        '''       ]QQQQQ6       <QQQQQ@          dQQQQQQQQQQQQQQQQQQQQQQQQQP    ''',
+        '''        4QQQQQc      mQQQQQ(          dQQQQQQQQQQQQQQQQQQQQQQQ@!     ''',
+        '''        +QQQQQQ     ]QQQQQ@           dQQQQQQQQQQQQQQQQQQQQWD^       ''',
+        '''         4QQQQQL    mQQQQQ(           dQQQQQQQQQQQQQQQQQQW?'         ''',
+        '''          QQQQQQ,  ]QQQQQE            dQQQQQQQQQQQQQQQQD"            ''',
+        '''          ]WQQQQk  mQQQQQ'            dQQQQQQQQQQQQQWY'              ''',
+        '''           4QQQQQc]QQQQQP             dQQQQQQQQQQQ@!                 ''',
+        '''           -QQQQQQWQQQQQ'             dQQQQQQQQQP^                   ''',
+        '''            ]QQQQQQQQQQF              3QQQQQQ@?                      ''',
+        '''             $QQQQQQQQQ'              +QQQQP^                        ''',
+        '''             )WQQQQQQQf                 !"`                          ''',
+        '''              4QQQQQQW`                                              ''',
+        '''              -QQQQQQf                                               '''
+    ],[
+        '''                       _QQQQQQQQQQQQQQQQQQQQQQQQQQQQ''',
+        '''                       dQQQQQQQQQQQQQQQQQQQQQQQQQQQQ''',
+        '''                      <QQQQQQQQQQQQQQQQQQQQQQQQQQQQQ''',
+        '''                      dQQQW`                        ''',
+        '''                     <QQQQ[                         ''',
+        '''                     mQQQ@                          ''',
+        '''                    ]QQQQ(   jgga,                  ''',
+        '''                   .mQQQD   :WQQQQg,.               ''',
+        '''                   ]QQQQ(   =QQQQQQQma,             ''',
+        '''                   mQQQP    =QQQQQQQQQQw,.          ''',
+        '''asasasas          jQQQQ'    =QQQQQQQQQQQQma.        ''',
+        '''QQQQQQQWc        .QQQQF     =QQQQQQQQQQQQQQQw,      ''',
+        '''QQQQQQQQQ,       jQQQQ'     =QQQQQQQQQQQQQQQQQma    ''',
+        '''    -QQQQL      .QQQQF      =QQQQQQQQQQQQQQQQQQQk   ''',
+        '''     )WQQQ/     jQQQW`      =QQQQQQQQQQQQQQQQQQQD   ''',
+        '''      4QQQm.   _QQQQf       =QQQQQQQQQQQQQQQQQW?    ''',
+        '''      -QQQQL   jQQQ@`       =QQQQQQQQQQQQQQWV"      ''',
+        '''       ]QQQQ, _QQQQf        =QQQQQQQQQQQQ@?`        ''',
+        '''        $QQQk jQQQW         =QQQQQQQQQWD"           ''',
+        '''        )WQQQaQQQQ[         =QQQQQQQ@Y~             ''',
+        '''         4QQQQQQQD          :QQQQQD"-               ''',
+        '''         -QQQQQQQ(           4$BT^                  ''',
+        '''          ]WQQQQD                                   ''',
+        '''           4QQQQ(                                   '''
+    ],[
+        '''               <QQQQQQQQQQQQQQQQQQ''',
+        '''               mQQQQQQQQQQQQQQQQQQ''',
+        '''              ]WQD                ''',
+        '''              mQQ(                ''',
+        '''             ]QQP  jQw,.          ''',
+        '''             QQQ'  WQQQma.        ''',
+        '''            ]QQF   WQQQQQQw,      ''',
+        '''QQQQQ[     .QQQ'   WQQQQQQQQma    ''',
+        '''T??QQQ,    jQQF    WQQQQQQQQQQQw. ''',
+        '''   ]WQk   .QQW`    WQQQQQQQQQQQW[ ''',
+        '''    4QQc  jQQf     WQQQQQQQQQQP"  ''',
+        '''    -QQQ .QQW      WQQQQQQQWT`    ''',
+        '''     ]QQLjQQ[      WQQQQQ@"       ''',
+        '''      $QQQQ@       $QQWT'         ''',
+        '''      )QQQQ[       "T!`           ''',
+        '''       4QQ@                       '''
+    ],[
+        '''       _QQQQQQQQQ''',
+        '''       j@        ''',
+        '''      _Q[_Qw,    ''',
+        '''aaa   dD ]QQQga  ''',
+        '''"?Q/ <Q( ]QQQQQQ/''',
+        '''  4m mP  ]QQQQD" ''',
+        '''  -QgQ'  )QWT`   ''',
+        '''   ]WF    "      '''
+    ],[
+        '''    ___''',
+        '''   /a. ''',
+        '''\ / WQD''',
+        ''' V  4' ''',
+    ],[
+        ''' _''',
+        '''V>'''
+    ]
+]
+
+startText=[
+    [
+        'SqrtDistributedPlayer',
+        'by Victor Miquel',
+        'press [h] for Help',
+        'Playlist empty'
+    ],[
+        'SqrtDistributedPlayer, by Victor Miquel, press [h] for Help, Playlist empty'
+    ],[
+        'SDP, Empty, [h]'
+    ]
+]
+
+def centered(txt, width):
+    return "".join([" " for i in range((width-len(txt))//2)])+txt
+
+def displayStartPage():
+    width, height=shutil.get_terminal_size()
+    clearTerminal()
+    if width<len(startText[2][0]): #too small
+        print("...", end="", flush=True)
+        return
+
+    iText=0
+    if height<8+1+4: # text-only, 1 line
+        iText=1
+    while len(startText[iText][0])>width:
+        iText+=1
+
+    iLogo=0
+    height-=len(startText[iText])
+
+    while iLogo<len(startLogo) and (len(startLogo[iLogo])>height-1 or len(startLogo[iLogo][0])>width):
+        iLogo+=1
+
+    if iLogo!=len(startLogo):
+        height-=len(startLogo[iLogo])+1
+
+    for i in range(height//2):
+        print("")
+    height-=height//2
+
+    if iLogo!=len(startLogo):
+        for line in startLogo[iLogo]:
+            print(centered(line, width))
+        print("")
+
+    iLine=0
+    for line in startText[iText]:
+        iLine+=1
+        if iLine<len(startText[iText]):
+            print(centered(line, width))
+        else:
+            print(centered(line, width), end="", flush=True)
+
+    for i in range(height):
+        print("")
+
+### UI Classes
+
 
 class ModePlaylist:
     def __init__(self):
@@ -415,10 +577,8 @@ Help:
 kb=KBHit()
 
 
-rootDir=Directory()
-#rootDir.append(Directory("/home/victor/Music/music/SomeRock/Lions in the street/"))
-#rootDir.append(Directory("/home/victor/Music/music/SomeRock/Weezer/"))
-rootDir.append(Directory(rootPath))
+playDir=Directory()
+#playDir.append(Directory(rootPath))
 
 playQueue=PlayQueue()
 
