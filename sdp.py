@@ -9,6 +9,7 @@ import math
 import signal
 
 import keyboard
+import termfmt as tfmt
 
 fmtName="notext_tal"
 supportedTypes=[".mp3"]
@@ -628,7 +629,10 @@ class ModeAdd_state:
 
         for i in range(self.view, min(self.view+height, len(self.dirList))):
             txt+='+' if self.dirList[i].path in self.addList else ' '
-            txt+=format(i, '0'+str(self.idLen)+'d')
+            curSId=format(i, '0'+str(self.idLen)+'d')
+            if curSId.startswith(self.sId):
+                curSId=tfmt.fmt(self.sId, tfmt.red)+curSId[len(self.sId):]
+            txt+=curSId
             txt+='>' if i==self.cursor else ' '
             txt+=self.dirList[i].name
             if i!=self.view+height-1:
