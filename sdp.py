@@ -9,14 +9,15 @@ import signal
 from kb import*
 
 playTool="sox"
-infoTool="none"
 fmtName="notext_tal"
 supportedTypes=[".mp3"]
+
+bReadMeta=False
+bPreloadMeta=False
 
 bShuffle=True
 bRepeat=True
 
-preloadInfo=False
 
 try:
     from settings import*
@@ -32,30 +33,44 @@ PLEASE NOTE THAT THERE ARE BARELY NO SAFETY CHECKS DONE ON WHAT YOU TYPE, TYPE W
 
     settingsFile.write('playTool="'+input("Which of these players do you want to use/is installed on your system? [vlc/sox] ")+'"\n')
 
-    answer=None
-    try:
-        import mutagen as importTest
-        settingsFile.write('infoTool="mutagen"\n')
-    except:
-        print("Mutagen (used to display titles, artists and albums) is not installed.")
-        while answer not in ['a','m','n']:
-            answer=input("Do you want to :\n- install Automatically (with \"pip install mutagen\") [a]\n- install Manually [m]\n- Not use it [n]\n- if you don't know, use [a].\n? ")
-        if answer=='a':
-            os.system("pip install mutagen")
-
-        if answer=='n':
-            settingsFile.write('infoTool="none"\n')
-        else:
-            settingsFile.write('infoTool="mutagen"\n')
 
     settingsFile.write('''\
 #fmtName="notext_tal"
 #supportedTypes=[".mp3"]
 
+''')
+
+
+    answer=None
+    try:
+        import mutagen
+        settingsFile.write('bReadMeta=True # enables mutagen\n')
+    except:
+        failed=False
+        if os.system("pip3 install mutagen"):
+            if os.name == 'nt':
+                if os.system("easy_install pip"):
+                    failed=True
+                elif os.system("pip3 install mutagen"):
+                    failed=True
+            else:
+                failed=True
+        if failed:
+            print('''\
+Failed to install mutagen.
+IF YOU WANT TRACK INFO TO BE DISPLAYED:
+1) Install mutagen lib manually
+2) set bReadMeta=True in "settings.py"''')
+            settingsFile.write('#bReadMeta=False # enables mutagen\n')
+        else:
+            settingsFile.write('bReadMeta=True # enables mutagen\n')
+
+
+    settingsFile.write('''\
+#bPreloadMeta=False
+
 #bShuffle=True
 #bRepeat=True
-
-#preloadInfo=False
 ''')
     print('Finished creating "settings.py", please restart the player now.')
     if answer=='m':
@@ -73,13 +88,6 @@ elif playTool=="sox":
 else:
     print("Unsupported playing tool.")
     print("Supported: vlc, sox.")
-    exit(1)
-
-if infoTool=="mutagen":
-    from mutagen.id3 import ID3
-elif infoTool!="none":
-    print("Unsupported metadata listing tool")
-    print("Supported: none, mutagen.")
     exit(1)
 
 if fmtName=="text":
@@ -101,6 +109,10 @@ else:
     print("Unsupported format name")
     print("Supported: text, notext_atl, notext_tal.")
     exit(1)
+
+if bReadMeta:
+    from mutagen.id3 import ID3
+
 
 def scoreFunc(size):
     return round(math.sqrt(size))
@@ -221,18 +233,18 @@ class Song:
         self.album=None
 
         self.size=1
-        self.gotInfo=False
-        if preloadInfo:
-            self.getInfo()
+        self.gotMeta=False
+        if bPreloadMeta:
+            self.getMeta()
 
-    def getInfo(self):
-        if self.gotInfo:
+    def getMeta(self):
+        if self.gotMeta:
             return
         else:
-            self.gotInfo=True
+            self.gotMeta=True
         if self.filename is not None:
             # get file info
-            if infoTool=="mutagen":
+            if bReadMeta:
                 try:
                     info=ID3(self.filename)
                     if "TIT2" in info:
@@ -242,10 +254,10 @@ class Song:
                     if "TALB" in info:
                         self.album=info["TALB"].text[0]
                 except:
-                    None
+                    pass
 
     def desc(self):
-        self.getInfo()
+        self.getMeta()
         if self.filename is None:
             return "Error - no filename"
         elif self.title is None:
