@@ -589,7 +589,7 @@ class ModeAdd_state:
         self.view=min(self.view, self.cursor)                      # make sure we see cursor (go up)
         self.view=max(self.view, self.cursor-height+1)             # make sure we see cursor (go down)
 
-        for i in range(self.view, self.view+height):
+        for i in range(self.view, min(self.view+height, len(self.dirList))):
             txt+='+' if self.dirList[i].path in self.addList else ' '
             txt+=format(i, '0'+str(self.idlen)+'d')
             txt+='>' if i==self.cursor else ' '
