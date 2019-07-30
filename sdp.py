@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import atexit
 import time
@@ -9,7 +10,6 @@ import signal
 
 from kb import*
 
-playTool="sox"
 fmtName="notext_tal"
 supportedTypes=[".mp3"]
 
@@ -19,6 +19,7 @@ bPreloadMeta=False
 bShuffle=True
 bRepeat=True
 
+bSavePower=False
 
 try:
     from settings import*
@@ -32,7 +33,15 @@ PLEASE NOTE THAT THERE ARE BARELY NO SAFETY CHECKS DONE ON WHAT YOU TYPE, TYPE W
     settingsFile=open('settings.py', mode='w')
     settingsFile.write('rootPath="'+input("Where is your music? [full path] ")+'"\n\n')
 
-    settingsFile.write('playTool="'+input("Which of these players do you want to use/is installed on your system? [vlc/sox] ")+'"\n')
+    playToolChoice=None
+    if os.name=='nt':
+        playToolChoice="vlc"
+    elif 'termux' in sys.prefix:
+        playToolChoice="sox"
+
+    while playToolChoice not in ['vlc', 'sox']:
+        playToolChoice=input("Which of these players do you want to use/is installed on your system? [vlc/sox] ")
+    settingsFile.write('playTool="'+playToolChoice+'"\n')
 
 
     settingsFile.write('''\
@@ -42,7 +51,6 @@ PLEASE NOTE THAT THERE ARE BARELY NO SAFETY CHECKS DONE ON WHAT YOU TYPE, TYPE W
 ''')
 
 
-    answer=None
     try:
         import mutagen
         settingsFile.write('bReadMeta=True # enables mutagen\n')
@@ -73,9 +81,12 @@ IF YOU WANT TRACK INFO TO BE DISPLAYED:
 #bShuffle=True
 #bRepeat=True
 ''')
+
+    if 'termux' in sys.prefix:
+        settingsFile.write('bSavePower=True # saves power, at the cost of a less responsing input\n')
+    else:
+        settingsFile.write('#bSavePower=False # saves power, at the cost of a less responsing input\n')
     print('Finished creating "settings.py", please restart the player now.')
-    if answer=='m':
-        print("(don't forget to install mutagen before doing so...)")
 
     settingsFile.close()
     exit(0)
