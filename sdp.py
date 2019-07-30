@@ -375,8 +375,6 @@ class ModePlaylist:
         if c=='s':
             playQueue.stop()
             self.display()
-        if c=='t':
-            print((time.time()-startTime)/(time.process_time()-startPT))
 
     def display(self):
         playQueue.display()
@@ -399,7 +397,6 @@ Help:
 - Next    - Skip to next song
 - Quit    - Stop and quit SDP
 - Stop    - Stop the music
-- Time    - Display saved CPU time as a ratio
 ### Press any key to continue ###''')
 ### UI funcs
 
@@ -423,8 +420,6 @@ lastSize=shutil.get_terminal_size()
 playQueue.tick()
 
 n=0
-startTime=time.time()
-startPT=time.process_time()
 
 while True:
     if lastSize!=shutil.get_terminal_size():
