@@ -8,7 +8,7 @@ import random
 import math
 import signal
 
-from kb import*
+import keyboard
 
 fmtName="notext_tal"
 supportedTypes=[".mp3"]
@@ -568,9 +568,36 @@ class ModeAdd_state:
         self.dir=d
         self.dirList=list(os.scandir(self.dir))
         self.dirList.sort(key=lambda x: x.name)
-        self.idlen=math.ceil(math.log10(len(self.dirList)))
+        self.idLen=math.ceil(math.log10(len(self.dirList)))
         self.view=0
         self.cursor=0
+        self.sId=""
+
+    def getCursorPath(self):
+        return self.dirList[self.cursor].path
+
+    def isSelected(self, path=None):
+        if path is None:
+            path=self.getCursorPath()
+        return path in self.addList
+
+    def select(self, path=None):
+        if path is None:
+            path=self.getCursorPath()
+        if not self.isSelected(path):
+            self.addList.append(path)
+
+    def deselect(self, path=None):
+        if path is None:
+            path=self.getCursorPath()
+        if self.isSelected(path):
+            self.addList.remove(path)
+
+    def toggleSelect(self, path=None):
+        if self.isSelected(path):
+            self.deselect(path)
+        else:
+            self.select(path)
 
     def up(self):
         if self.cursor>0:
@@ -579,6 +606,16 @@ class ModeAdd_state:
     def down(self):
         if self.cursor<len(self.dirList)-1:
             self.cursor+=1
+
+    def typeNum(self, c):
+        self.sId+=c
+        if len(self.sId)==self.idLen:
+            self.cursor=int(self.sId)
+            self.toggleSelect()
+            self.sId=""
+        else:
+            self.cursor=int(self.sId)*(10**(self.idLen-len(self.sId)))
+            self.view=self.cursor
 
     def display(self):
         width, height=shutil.get_terminal_size()
@@ -591,7 +628,7 @@ class ModeAdd_state:
 
         for i in range(self.view, min(self.view+height, len(self.dirList))):
             txt+='+' if self.dirList[i].path in self.addList else ' '
-            txt+=format(i, '0'+str(self.idlen)+'d')
+            txt+=format(i, '0'+str(self.idLen)+'d')
             txt+='>' if i==self.cursor else ' '
             txt+=self.dirList[i].name
             if i!=self.view+height-1:
@@ -616,10 +653,16 @@ class ModeAdd:
         elif c=='\x1b[B' or c=='\xe0P': # down arrow
             addMode_state.down()
             addMode_state.display()
+        elif c==' ':
+            addMode_state.toggleSelect()
+            addMode_state.display()
+        elif len(c)==1 and '0'<=c<='9':
+            addMode_state.typeNum(c)
+            addMode_state.display()
         elif c=='a':
             addMode_state.add()
             newMode=ModePlayqueue
-        if c=='q':
+        elif c=='q':
             playQueue.stop()
             print("\nQuit")
             exit(0)
@@ -663,7 +706,7 @@ Modes:
 
 
 
-kb=KBHit()
+kb=keyboard.KBHit()
 
 
 playDir=Directory()
