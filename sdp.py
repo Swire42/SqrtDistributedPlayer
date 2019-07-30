@@ -9,8 +9,6 @@ import signal
 from kb import*
 
 playTool="sox"
-listDirTool="find"
-listFileTool="find"
 infoTool="none"
 fmtName="notext_tal"
 supportedTypes=[".mp3"]
@@ -33,10 +31,7 @@ PLEASE NOTE THAT THERE ARE BARELY NO SAFETY CHECKS DONE ON WHAT YOU TYPE, TYPE W
     settingsFile.write('rootPath="'+input("Where is your music? [full path] ")+'"\n\n')
 
     settingsFile.write('playTool="'+input("Which of these players do you want to use/is installed on your system? [vlc/sox] ")+'"\n')
-    settingsFile.write('''\
-#listDirTool="find"
-#listFileTool="find"
-''')
+
     answer=None
     try:
         import mutagen as importTest
@@ -78,20 +73,6 @@ elif playTool=="sox":
 else:
     print("Unsupported playing tool.")
     print("Supported: vlc, sox.")
-    exit(1)
-
-if listDirTool=="find":
-    listDirCmd="find {} -maxdepth 1 -mindepth 1 -type d"
-else:
-    print("Unsupported directory listing tool.")
-    print("Supported: find.")
-    exit(1)
-
-if listFileTool=="find":
-    listFileCmd="find {} -maxdepth 1 -mindepth 1 -type f"
-else:
-    print("Unsupported file listing tool.")
-    print("Supported: find.")
     exit(1)
 
 if infoTool=="mutagen":
@@ -301,19 +282,17 @@ class Song:
 class Directory:
     def __init__(self, p=None):
         self.path=p
+        self.content=[]
         if self.path is not None:
             print("loading \"", self.path, "\"...", sep="")
-        self.content=[]
-        if p is not None:
-            for line in runGetOutput(listDirCmd, self.path):
-                line=line.decode('utf-8').strip()
-                self.content.append(Directory(line))
-                if self.content[-1].size==0:
-                    self.content.pop()
-            for line in runGetOutput(listFileCmd, self.path):
-                line=line.decode('utf-8').strip()
-                if isSong(line):
-                    self.content.append(Song(line))
+            for i in os.scandir(self.path):
+                if i.is_dir():
+                    self.content.append(Directory(i.path))
+                    if self.content[-1].size==0:
+                        self.content.pop()
+                elif i.is_file():
+                    if isSong(i.name):
+                        self.content.append(Song(i.path))
         self.update()
 
     def append(self, x):
