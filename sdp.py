@@ -448,5 +448,5 @@ while True:
         time.sleep(0.01)
     elif n<0.2*100+2*10: # 2s@10Hz
         time.sleep(0.1)
-    else: # 1Hz
-        time.sleep(1)
+    else: # 1Hz | 10Hz
+        time.sleep(1 if bSavePower else 0.1)
