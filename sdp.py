@@ -170,6 +170,9 @@ class PlayQueue:
         self.bPaused=False
         self.bShow=False
 
+    def __del__(self):
+        playerProcess.terminate()
+
     def append(self, x):
         self.content.append(x)
 
@@ -537,6 +540,7 @@ class ModePlayqueue:
 
     def input(self, c):
         global newMode
+        global playQueue
         if c=='h':
             newMode=ModeHelp
         if c==' ':
@@ -544,7 +548,12 @@ class ModePlayqueue:
             self.display()
         if c=='a':
             newMode=ModeAdd
+        if c=='c':
+            global playDir
+            global addMode_state
             addMode_state=ModeAdd_state()
+            playDir=Directory()
+            playQueue=PlayQueue()
         if c=='n':
             playQueue.play()
             self.display()
@@ -564,6 +573,16 @@ class ModeAdd_state:
     def __init__(self):
         self.cd(rootPath)
         self.addList=[]
+
+    def add(self):
+        global playQueue
+        global playDir
+        playQueue.stop()
+        playDir=Directory()
+        for i in self.addList:
+            if isSong(i): playDir.append(Song(i))
+            else: playDir.append(Directory(i))
+        playQueue=PlayQueue()
 
     def cd(self, d):
         self.dir=d
@@ -628,15 +647,20 @@ class ModeAdd_state:
         self.view=max(self.view, self.cursor-height+1)             # make sure we see cursor (go down)
 
         for i in range(self.view, min(self.view+height, len(self.dirList))):
-            txt+='+' if self.dirList[i].path in self.addList else ' '
+            if i==self.cursor: txt+=tfmt.bold
+            if self.isSelected(self.dirList[i].path): txt+=tfmt.fgDGreen+'+'
+            else: txt+=' '
             curSId=format(i, '0'+str(self.idLen)+'d')
             if curSId.startswith(self.sId):
-                curSId=tfmt.fmt(self.sId, tfmt.red)+curSId[len(self.sId):]
+                curSId=tfmt.underline+self.sId+tfmt.resetUnderline+curSId[len(self.sId):]
             txt+=curSId
-            txt+='>' if i==self.cursor else ' '
+            if i==self.cursor: txt+='>'
+            else: txt+=' '
+            if self.dirList[i].is_dir(): txt+=tfmt.bgColorRGB(32,32,32)
+            elif not isSong(self.dirList[i].name): txt+=tfmt.dim
             txt+=self.dirList[i].name
-            if i!=self.view+height-1:
-                txt+='\n'
+            if i!=self.view+height-1: txt+='\n'
+            txt+=tfmt.resetAll
 
         clearTerminal()
         print(txt, end="", flush=True)
