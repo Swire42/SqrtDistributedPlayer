@@ -554,6 +554,7 @@ class ModePlayqueue:
             addMode_state=ModeAdd_state()
             playDir=Directory()
             playQueue=PlayQueue()
+            self.display()
         if c=='n':
             playQueue.play()
             self.display()
@@ -673,6 +674,8 @@ class ModeAdd:
 
     def input(self, c):
         global newMode
+        if c=='h':
+            newMode=ModeHelp
         if c=='\x1b': # ESC
             newMode=ModePlayqueue
         elif c=='\x1b[A' or c=='\xe0H': # up arrow
@@ -711,20 +714,24 @@ class ModeHelp:
         if lastMode==ModePlayqueue:
             print('''\
 ### Help - Playqueue ###
-Playqueue:
-- [Space]   | Play/Pause (Pause=Stop when not available)
-- [n] Next  | Skip to next song
-- [Q] Quit  | Stop and quit SDP
-- [s] Stop  | Stop the music
-''')
-        else:
-            print('### UNKWOWN HELP ###')
-
-        print('''\
-Modes:
-- [h] Help  | Display help page for the current mode
-- [a] Add   | Add a directory/file to the playlist
-- [q] Queue | Display playqueue
+- [h] Help  | Display help page for the current mode.
+- [Space]   | Play/Pause (Pause=Stop when not available).
+- [a] Add   | Add a directory/file to the playlist.
+- [c] Clear | Clear the playlist.
+- [n] Next  | Skip to next song.
+- [q] Quit  | Quit SDP.
+- [s] Stop  | Stop the music.
+### Press any key to continue ###''')
+        elif lastMode==ModeAdd:
+            print('''\
+### Help - Add ###
+- [h] Help  | Display help page for the current mode.
+- [Esc]     | Cancel.
+- [Up/Down] | Change highlighted item.
+- [Space]   | Select/Deselect highlighted item.
+- [Number]  | Select/Deselect corresponding item.
+- [a] Add   | Apply changes.
+- [q] Quit  | Quit SDP.
 ### Press any key to continue ###''')
 
 
