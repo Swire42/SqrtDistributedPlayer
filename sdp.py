@@ -630,28 +630,39 @@ class ModeAdd_state:
 
     def typeNum(self, c):
         self.sId+=c
+        iId=int(self.sId)*(10**(self.idLen-len(self.sId)))
+        if iId>=len(self.dirList):
+            self.sId=''
+            iId=len(self.dirList)-1
+
+        self.cursor=iId+(10**(self.idLen-len(self.sId)))-1
+        self.updateView()
+        self.cursor=iId
+
         if len(self.sId)==self.idLen:
-            self.cursor=int(self.sId)
-            self.toggleSelect()
-            self.sId=""
-        else:
-            self.cursor=int(self.sId)*(10**(self.idLen-len(self.sId)))
-            self.view=self.cursor
+            self.sId=''
+
+    def back(self):
+        if len(self.sId):
+            self.sId=self.sId[:-1]
+
+    def updateView(self):
+        width, height=shutil.get_terminal_size()
+        self.view=min(self.view, max(0, len(self.dirList)-height)) # limit max view pos
+        self.view=min(self.view, self.cursor)                      # make sure we see cursor (go up)
+        self.view=max(self.view, self.cursor-height+1)             # make sure we see cursor (go down)
 
     def display(self):
         width, height=shutil.get_terminal_size()
         txt=""
 
-        # update view
-        self.view=min(self.view, max(0, len(self.dirList)-height)) # limit max view pos
-        self.view=min(self.view, self.cursor)                      # make sure we see cursor (go up)
-        self.view=max(self.view, self.cursor-height+1)             # make sure we see cursor (go down)
+        self.updateView()
 
         for i in range(self.view, min(self.view+height, len(self.dirList))):
             if i==self.cursor: txt+=tfmt.bold
             if self.isSelected(self.dirList[i].path): txt+=tfmt.fgDGreen+'+'
             else: txt+=' '
-            curSId=format(i, '0'+str(self.idLen)+'d')
+            curSId=str(i).zfill(self.idLen)
             if curSId.startswith(self.sId):
                 curSId=tfmt.underline+self.sId+tfmt.resetUnderline+curSId[len(self.sId):]
             txt+=curSId
@@ -683,6 +694,9 @@ class ModeAdd:
             addMode_state.display()
         elif c=='\x1b[B' or c=='\xe0P': # down arrow
             addMode_state.down()
+            addMode_state.display()
+        elif c=='\x7f': # Back
+            addMode_state.back()
             addMode_state.display()
         elif c==' ':
             addMode_state.toggleSelect()
