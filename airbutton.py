@@ -29,7 +29,7 @@ if 'termux' in sys.prefix:
                     elif self.last==1 and cur==0:
                         if self.pushTime<10:
                             result.append(1)
-                    self.past=cur
+                    self.last=cur
 
             return result
 
