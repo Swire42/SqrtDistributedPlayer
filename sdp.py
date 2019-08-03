@@ -10,6 +10,8 @@ import signal
 
 import keyboard
 import termfmt as tfmt
+import airbutton as ab
+
 
 fmtName="notext_tal"
 supportedTypes=[".mp3"]
@@ -153,15 +155,45 @@ def termPlayer():
     playerProcess.terminate()
 atexit.register(termPlayer)
 
-playQueue=[]
-
 def isSong(filename):
     for ext in supportedTypes:
         if filename[-len(ext):]==ext:
             return True
     return False
 
+def parent(path):
+    sep='\\' if os.name=='nt' else '/'
+    i=-1
+    for i in range(len(d)-2,-2,-1): # end=-1 : if sep isn't encountered, i==-1
+        if path[i]==sep:
+            break
+    return path[0:i+1]
+
+
+def GCP(a, b): # Greatest Common Parent
+    if a[0]!=b[0]:
+        return ''
+    if a==b:
+        return a
+
+    sep='\\' if os.name=='nt' else '/'
+    if len(a)<len(b):
+        if a[-1]!=sep: a+=sep
+    else:
+        if b[-1]!=sep: b+=sep
+
+    while a!=b:
+        if len(a)<len(b):
+            a=parent(a)
+        else:
+            b=parent(b)
+
 ### Classes
+
+class Playlist:
+    def __init__(self):
+        self.include=[]
+        self.exclude=[]
 
 class PlayQueue:
     def __init__(self):
@@ -762,6 +794,7 @@ playDir=Directory()
 #playDir.append(Directory(rootPath))
 
 playQueue=PlayQueue()
+airButton=ab.AirButton()
 
 mode=ModePlayqueue()
 newMode=None
@@ -784,6 +817,11 @@ while True:
             lastMode=type(mode)
             mode=newMode()
             newMode=None
+    for i in airButton.tick():
+        if i==1:
+            mode.input(' ')
+        else:
+            mode.input('n')
     playQueue.tick()
 
     n+=1
