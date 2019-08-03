@@ -819,8 +819,6 @@ while True:
             newMode=None
     for i in airButton.tick():
         if i==1:
-            mode.input(' ')
-        else:
             mode.input('n')
     playQueue.tick()
 
