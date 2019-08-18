@@ -96,6 +96,9 @@ IF YOU WANT TRACK INFO TO BE DISPLAYED:
 
 
 # Apply settings
+
+if rootPath[-1] in ['/', '\\']: rootPath=rootPath[:-1]
+
 if playTool=="vlc":
     playCmd="vlc --qt-start-minimized --play-and-exit {}"
 elif playTool=="sox":
@@ -156,6 +159,8 @@ def termPlayer():
 atexit.register(termPlayer)
 
 def isSong(filename):
+    if filename is None: return False
+
     for ext in supportedTypes:
         if filename[-len(ext):]==ext:
             return True
@@ -164,13 +169,31 @@ def isSong(filename):
 def parent(path):
     sep='\\' if os.name=='nt' else '/'
     i=-1
-    for i in range(len(d)-2,-2,-1): # end=-1 : if sep isn't encountered, i==-1
+    for i in range(len(path)-2,-2,-1): # end=-1 : if sep isn't encountered, i==-1
         if path[i]==sep:
             break
     return path[0:i+1]
 
+def cutPath(path):
+    sep='\\' if os.name=='nt' else '/'
+    i=-1
+    for i in range(len(path)-2,-2,-1): # end=-1 : if sep isn't encountered, i==-1
+        if path[i]==sep:
+            break
+    return path[i+1:]
 
 def GCP(a, b): # Greatest Common Parent
+    if isSong(a): a=parent(a)
+    if isSong(b): b=parent(b)
+
+    if a is None:
+        if b is None:
+            return ''
+        else:
+            return b
+    elif b is None:
+        return a
+
     if a[0]!=b[0]:
         return ''
     if a==b:
@@ -182,11 +205,15 @@ def GCP(a, b): # Greatest Common Parent
     else:
         if b[-1]!=sep: b+=sep
 
+    print(1)
     while a!=b:
-        if len(a)<len(b):
+        if len(a)>len(b):
             a=parent(a)
         else:
             b=parent(b)
+        print(a,b)
+    print(2)
+    return a
 
 ### Classes
 
@@ -194,6 +221,82 @@ class Playlist:
     def __init__(self):
         self.include=[]
         self.exclude=[]
+
+    def rootDir(self):
+        ret=None
+        for p in self.include:
+            ret=GCP(ret, p)
+        return ret
+
+    def status(self, path):
+        sep='\\' if os.name=='nt' else '/'
+        manualAdd=False
+        addCause=None
+        manualRemove=False
+        removeCause=None
+        partial=False
+
+        self.include.sort()
+        self.exclude.sort()
+
+        for i in self.include:
+            if path==i:
+                manualAdd=True
+            elif path.startswith(i+sep):
+                addCause=i
+            elif i.startswith(path+sep):
+                partial=True
+
+        for i in self.exclude:
+            if path==i:
+                manualRemove=True
+            elif path.startswith(i+sep):
+                removeCause=i
+
+        if manualAdd:
+            if partial: return '+['
+            else:       return '+ '
+        elif manualRemove:
+            if partial: return '-['
+            else:       return '- '
+        elif (addCause is not None) and ((removeCause is None) or (removeCause<addCause)):
+            if partial: return '.['
+            else:       return '. '
+        elif (removeCause is not None) and ((addCause is None) or (removeCause>addCause)):
+            if partial: return ']['
+            else:       return '] '
+        else:
+            if partial: return ' ['
+            else:       return '  '
+
+    def clear(self, path):
+        sep='\\' if os.name=='nt' else '/'
+        i=0
+        while i<len(self.include):
+            if self.include[i]==path:
+                self.include.pop(i)
+            elif self.include[i].startswith(path+sep):
+                self.include.pop(i)
+            else:
+                i+=1
+        i=0
+        while i<len(self.exclude):
+            if self.exclude[i]==path:
+                self.exclude.pop(i)
+            elif self.exclude[i].startswith(path+sep):
+                self.exclude.pop(i)
+            else:
+                i+=1
+
+    def add(self, path):
+        self.clear(path)
+        if self.status(path) in ['] ', '  ']:
+            self.include.append(path)
+
+    def remove(self, path):
+        self.clear(path)
+        if self.status(path)=='. ':
+            self.exclude.append(path)
 
 class PlayQueue:
     def __init__(self):
@@ -352,18 +455,20 @@ class Song:
 
 
 class Directory:
-    def __init__(self, p=None):
+    def __init__(self, p=None, full=True):
         self.path=p
         self.content=[]
         if self.path is not None:
             for i in os.scandir(self.path):
-                if i.is_dir():
-                    self.content.append(Directory(i.path))
-                    if self.content[-1].size==0:
-                        self.content.pop()
-                elif i.is_file():
-                    if isSong(i.name):
-                        self.content.append(Song(i.path))
+                status=playlist.status(i.path)
+                if full or (status[0] in ['+', '.']) or status[1]=='[':
+                    if i.is_dir():
+                        self.content.append(Directory(i.path, full or status[1]==' '))
+                        if self.content[-1].size==0:
+                            self.content.pop()
+                    elif i.is_file():
+                        if isSong(i.name):
+                            self.content.append(Song(i.path))
         self.update()
 
     def append(self, x):
@@ -612,53 +717,67 @@ class ModeAdd_state:
         global playDir
         playQueue.stop()
         playDir=Directory()
-        for i in self.addList:
-            if isSong(i): playDir.append(Song(i))
-            else: playDir.append(Directory(i))
+        playDir.append(Directory(playlist.rootDir(), False))
         playQueue=PlayQueue()
 
     def cd(self, d):
-        self.dir=d
+        if d is 1:
+            if self.dirList[self.cursor].is_dir():
+                self.dir=self.getCursorPath()
+        elif d is -1:
+            old=cutPath(self.dir)
+            self.dir=parent(self.dir)
+        else:
+            self.dir=d
+
         self.dirList=list(os.scandir(self.dir))
         self.dirList.sort(key=lambda x: x.name)
         self.idLen=math.ceil(math.log10(len(self.dirList)))
         self.view=0
-        self.cursor=0
         self.sId=""
+        self.cursor=0
+        if d is -1:
+            self.find(old)
 
     def getCursorPath(self):
         return self.dirList[self.cursor].path
 
-    def isSelected(self, path=None):
+    def markAdd(self, path=None):
         if path is None:
             path=self.getCursorPath()
-        return path in self.addList
+        playlist.add(path)
 
-    def select(self, path=None):
+    def markRemove(self, path=None):
         if path is None:
             path=self.getCursorPath()
-        if not self.isSelected(path):
-            self.addList.append(path)
+        playlist.remove(path)
 
-    def deselect(self, path=None):
+    def unmark(self, path=None):
         if path is None:
             path=self.getCursorPath()
-        if self.isSelected(path):
-            self.addList.remove(path)
+        playlist.clear(path)
 
-    def toggleSelect(self, path=None):
-        if self.isSelected(path):
-            self.deselect(path)
+    def toggleMark(self, path=None):
+        if path is None:
+            path=self.getCursorPath()
+        if playlist.status(path)[0] in ['+', '-']:
+            self.unmark(path)
         else:
-            self.select(path)
+            self.markAdd(path)
 
     def up(self):
         if self.cursor>0:
             self.cursor-=1
+            return True
+        else:
+            return False
 
     def down(self):
         if self.cursor<len(self.dirList)-1:
             self.cursor+=1
+            return True
+        else:
+            return False
 
     def typeNum(self, c):
         self.sId+=c
@@ -674,9 +793,18 @@ class ModeAdd_state:
         if len(self.sId)==self.idLen:
             self.sId=''
 
+    def find(self, txt):
+        self.cursor=0
+        while txt>cutPath(self.getCursorPath()):
+            if not self.down():
+                self.cursor=0
+                return
+
     def back(self):
         if len(self.sId):
             self.sId=self.sId[:-1]
+        else:
+            self.cd(-1)
 
     def updateView(self):
         width, height=shutil.get_terminal_size()
@@ -692,8 +820,13 @@ class ModeAdd_state:
 
         for i in range(self.view, min(self.view+height, len(self.dirList))):
             if i==self.cursor: txt+=tfmt.bold
-            if self.isSelected(self.dirList[i].path): txt+=tfmt.fgDGreen+'+'
-            else: txt+=' '
+            status=playlist.status(self.dirList[i].path)
+            if   status[0]=='+': txt+=tfmt.fgLGreen
+            elif status[0]=='-': txt+=tfmt.fgLRed
+            elif status[0]=='.': txt+=tfmt.fgDGreen
+            elif status[0]==']': txt+=tfmt.fgDRed
+            elif status[1]=='[': txt+=tfmt.fgLYellow
+            txt+=status
             curSId=str(i).zfill(self.idLen)
             if curSId.startswith(self.sId):
                 curSId=tfmt.underline+self.sId+tfmt.resetUnderline+curSId[len(self.sId):]
@@ -727,11 +860,20 @@ class ModeAdd:
         elif c=='\x1b[B' or c=='\xe0P': # down arrow
             addMode_state.down()
             addMode_state.display()
+        elif c=='\x1b[C' or c=='\xe0M': # right arrow
+            addMode_state.cd(1)
+            addMode_state.display()
+        elif c=='\x1b[D' or c=='\xe0K': # left arrow
+            addMode_state.cd(-1)
+            addMode_state.display()
         elif c=='\x7f': # Back
             addMode_state.back()
             addMode_state.display()
+        elif c=='\n': # enter
+            addMode_state.cd(1)
+            addMode_state.display()
         elif c==' ':
-            addMode_state.toggleSelect()
+            addMode_state.toggleMark()
             addMode_state.display()
         elif len(c)==1 and '0'<=c<='9':
             addMode_state.typeNum(c)
@@ -739,6 +881,9 @@ class ModeAdd:
         elif c=='a':
             addMode_state.add()
             newMode=ModePlayqueue
+        elif c=='d':
+            addMode_state.markRemove()
+            addMode_state.display()
         elif c=='q':
             playQueue.stop()
             print("\nQuit")
@@ -773,10 +918,15 @@ class ModeHelp:
 ### Help - Add ###
 - [h] Help  | Display help page for the current mode.
 - [Esc]     | Cancel.
-- [Up/Down] | Change highlighted item.
-- [Space]   | Select/Deselect highlighted item.
+- [Up/Down] | Change selected item.
+- [Back]    | Erase/parent directory.
+- [Left]    | Parent directory.
+- [Enter]   | Enter selected directory
+- [Right]   | Enter selected directory
+- [Space]   | Mark added/unmark.
 - [Number]  | Select/Deselect corresponding item.
 - [a] Add   | Apply changes.
+- [d/Del]   | Mark removed.
 - [q] Quit  | Quit SDP.
 ### Press any key to continue ###''')
 
@@ -793,6 +943,7 @@ kb=keyboard.KBHit()
 playDir=Directory()
 #playDir.append(Directory(rootPath))
 
+playlist=Playlist()
 playQueue=PlayQueue()
 airButton=ab.AirButton()
 
