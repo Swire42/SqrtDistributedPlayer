@@ -822,20 +822,21 @@ class ModeAdd_state:
         self.updateView()
 
         for i in range(self.view, min(self.view+height, len(self.dirList))):
-            if i==self.cursor: txt+=tfmt.bold
+            if i==self.cursor: txt+=tfmt.inverse
             status=playlist.status(self.dirList[i].path)
             if   status[0]=='+': txt+=tfmt.fgLGreen
             elif status[0]=='-': txt+=tfmt.fgLRed
             elif status[0]=='.': txt+=tfmt.fgDGreen
             elif status[0]==']': txt+=tfmt.fgDRed
             elif status[1]=='[': txt+=tfmt.fgLYellow
-            txt+=status
+
             curSId=str(i).zfill(self.idLen)
             if curSId.startswith(self.sId):
                 curSId=tfmt.underline+self.sId+tfmt.resetUnderline+curSId[len(self.sId):]
             txt+=curSId
-            if i==self.cursor: txt+='>'
-            else: txt+=' '
+
+            txt+=status
+
             if self.dirList[i].is_dir(): txt+=tfmt.bgColorRGB(32,32,32)
             elif not isSong(self.dirList[i].name): txt+=tfmt.dim
             txt+=self.dirList[i].name
