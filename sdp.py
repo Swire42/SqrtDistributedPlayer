@@ -735,7 +735,7 @@ class ModeAdd_state:
 
         self.dirList=list(os.scandir(self.dir))
         self.dirList.sort(key=lambda x: x.name)
-        self.idLen=math.ceil(math.log10(len(self.dirList)))
+        self.idLen=math.ceil(math.log10(len(self.dirList))) if self.dirList else 0
         self.view=0
         self.sId=""
         self.cursor=0
@@ -783,6 +783,8 @@ class ModeAdd_state:
             return False
 
     def typeNum(self, c):
+        if self.idLen==0: return
+
         self.sId+=c
         iId=int(self.sId)*(10**(self.idLen-len(self.sId)))
         if iId>=len(self.dirList):
@@ -837,7 +839,7 @@ class ModeAdd_state:
 
             txt+=status
 
-            if self.dirList[i].is_dir(): txt+=tfmt.bgColorRGB(32,32,32)
+            if self.dirList[i].is_dir(): txt+=tfmt.bgColorRGB(64,64,64)
             elif not isSong(self.dirList[i].name): txt+=tfmt.dim
             txt+=self.dirList[i].name
             if i!=self.view+height-1: txt+='\n'
