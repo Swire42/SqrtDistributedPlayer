@@ -85,7 +85,7 @@ IF YOU WANT TRACK INFO TO BE DISPLAYED:
 #bRepeat=True
 ''')
 
-    if 'termux' in sys.prefix:
+    if False:# 'termux' in sys.prefix:
         settingsFile.write('bSavePower=True # saves power, at the cost of a less responsing input\n')
     else:
         settingsFile.write('#bSavePower=False # saves power, at the cost of a less responsing input\n')
