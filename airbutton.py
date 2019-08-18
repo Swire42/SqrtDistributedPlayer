@@ -10,6 +10,9 @@ if 'termux' in sys.prefix:
     class AirButton:
         def __init__(self):
             os.system("termux-sensor -c")
+            self.init()
+
+        def init(self):
             self.process=subprocess.Popen(['termux-sensor','-s','prox','-d','100'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             atexit.register(self.process.terminate)
             self.pushTime=0
