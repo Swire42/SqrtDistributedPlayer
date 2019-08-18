@@ -253,6 +253,8 @@ class Playlist:
                 manualRemove=True
             elif path.startswith(i+sep):
                 removeCause=i
+            elif i.startswith(path+sep):
+                partial=True
 
         if manualAdd:
             if partial: return '+['
