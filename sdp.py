@@ -180,7 +180,8 @@ def cutPath(path):
     for i in range(len(path)-2,-2,-1): # end=-1 : if sep isn't encountered, i==-1
         if path[i]==sep:
             break
-    return path[i+1:]
+    if path[-1]==sep: return path[i+1:-1]
+    else: return path[i+1:]
 
 def GCP(a, b): # Greatest Common Parent
     if isSong(a): a=parent(a)
