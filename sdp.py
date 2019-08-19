@@ -84,6 +84,8 @@ IF YOU WANT TRACK INFO TO BE DISPLAYED:
 
 #bShuffle=True
 #bRepeat=True
+
+#bNoAirButton=False
 ''')
 
     if False:# 'termux' in sys.prefix:
