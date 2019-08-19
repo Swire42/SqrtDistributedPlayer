@@ -1048,9 +1048,10 @@ while True:
             lastMode=type(mode)
             mode=newMode()
             newMode=None
-    for i in airButton.tick():
-        if i==1:
-            mode.input('n')
+    if not bNoAirButton:
+        for i in airButton.tick():
+            if i==1:
+                mode.input('n')
     playQueue.tick()
 
     n+=1
