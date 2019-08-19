@@ -223,6 +223,23 @@ class Playlist:
         self.include=[]
         self.exclude=[]
 
+    def save(self, name):
+        if name[-4:]!=".lst": name+=".lst"
+        f=open(name, 'w')
+        f.writelines("+%s\n" % i for i in self.include)
+        f.close()
+
+    def load(self, name):
+        if name[-4:]!=".lst": name+=".lst"
+        self.include=[]
+        self.exclude=[]
+        with open(name, 'r') as f:
+            for line in f:
+                if line[0]=='+':
+                    self.include.append(line[1:].strip())
+                elif line[0]=='-':
+                    self.exclude.append(line[1:].strip())
+
     def rootDir(self):
         ret=None
         for p in self.include:
@@ -686,7 +703,7 @@ class ModePlayqueue:
         if c==' ':
             playQueue.togglePause()
             self.display()
-        if c=='a':
+        if c=='p':
             newMode=ModeAdd
         if c=='c':
             global playDir
@@ -856,6 +873,7 @@ class ModeAdd:
 
     def input(self, c):
         global newMode
+        global addMode_state
         if c=='h':
             newMode=ModeHelp
         if c=='\x1b': # ESC
@@ -885,18 +903,69 @@ class ModeAdd:
             addMode_state.typeNum(c)
             addMode_state.display()
         elif c=='a':
-            addMode_state.add()
-            newMode=ModePlayqueue
+            addMode_state.toggleMark()
+            addMode_state.display()
         elif c=='d':
             addMode_state.markRemove()
             addMode_state.display()
+        elif c=='l':
+            newMode=ModeLoad
+        elif c=='p':
+            addMode_state.add()
+            newMode=ModePlayqueue
         elif c=='q':
             playQueue.stop()
             print("\nQuit")
             exit(0)
+        elif c=='s':
+            newMode=ModeSave
 
     def display(self):
         return addMode_state.display()
+
+class ModeSave:
+    def __init__(self):
+        self.name=""
+        self.display()
+
+    def input(self, c):
+        global newMode
+        if c=='\x7f': # Back
+            self.name=self.name[:-1]
+            self.display()
+        elif c=='\n' and len(self.name)!=0:
+            playlist.save(self.name)
+            newMode=ModeAdd
+        elif 'a'<=c<='z' or 'A'<=c<='Z' or '0'<=c<='9' or c in ['.']:
+            self.name+=c
+            self.display()
+
+    def display(self):
+        clearTerminal()
+        print("Enter playlist name and press [Enter]\n>"+self.name, end="", flush=True)
+
+class ModeLoad:
+    def __init__(self):
+        self.name=""
+        self.display()
+
+    def input(self, c):
+        global newMode
+        global addMode_state
+        if c=='\x7f': # Back
+            self.name=self.name[:-1]
+            self.display()
+        elif c=='\n' and len(self.name)!=0:
+            playlist.load(self.name)
+            addMode_state=ModeAdd_state()
+            newMode=ModeAdd
+        elif 'a'<=c<='z' or 'A'<=c<='Z' or '0'<=c<='9' or c in ['.']:
+            self.name+=c
+            self.display()
+
+    def display(self):
+        clearTerminal()
+        print("Enter playlist name and press [Enter]\n>"+self.name, end="", flush=True)
 
 class ModeHelp:
     def __init__(self):
@@ -911,13 +980,13 @@ class ModeHelp:
         if lastMode==ModePlayqueue:
             print('''\
 ### Help - Playqueue ###
-- [h] Help  | Display help page for the current mode.
-- [Space]   | Play/Pause (Pause=Stop when not available).
-- [a] Add   | Add a directory/file to the playlist.
-- [c] Clear | Clear the playlist.
-- [n] Next  | Skip to next song.
-- [q] Quit  | Quit SDP.
-- [s] Stop  | Stop the music.
+- [h] Help     | Display help page for the current mode.
+- [Space]      | Play/Pause (Pause=Stop when not available).
+- [p] Playlist | Edit the playlist.
+- [c] Clear    | Clear the playlist.
+- [n] Next     | Skip to next song.
+- [q] Quit     | Quit SDP.
+- [s] Stop     | Stop the music.
 ### Press any key to continue ###''')
         elif lastMode==ModeAdd:
             print('''\
@@ -929,11 +998,13 @@ class ModeHelp:
 - [Left]    | Parent directory.
 - [Enter]   | Enter selected directory
 - [Right]   | Enter selected directory
-- [Space]   | Mark added/unmark.
 - [Number]  | Select/Deselect corresponding item.
-- [a] Add   | Apply changes.
+- [a/Space] | Mark added/unmark.
 - [d/Del]   | Mark removed.
+- [l] Load  | Load saved playlist
+- [p] Apply | Apply changes.
 - [q] Quit  | Quit SDP.
+- [s] Save  | Save playlist
 ### Press any key to continue ###''')
 
 
