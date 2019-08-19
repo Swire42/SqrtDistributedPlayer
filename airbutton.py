@@ -5,7 +5,7 @@ import select
 import sys
 import os
 
-if 'termux' in sys.prefix:
+if not(bNoAirButton) and 'termux' in sys.prefix:
 
     class AirButton:
         def __init__(self):

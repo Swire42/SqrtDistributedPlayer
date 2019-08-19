@@ -10,7 +10,6 @@ import signal
 
 import keyboard
 import termfmt as tfmt
-import airbutton as ab
 
 
 fmtName="notext_tal"
@@ -23,6 +22,8 @@ bShuffle=True
 bRepeat=True
 
 bSavePower=False
+
+bNoAirButton=False
 
 try:
     from settings import*
@@ -96,6 +97,8 @@ IF YOU WANT TRACK INFO TO BE DISPLAYED:
 
 
 # Apply settings
+
+import airbutton as ab
 
 if rootPath[-1] in ['/', '\\']: rootPath=rootPath[:-1]
 
