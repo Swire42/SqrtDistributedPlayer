@@ -14,7 +14,7 @@ import airbutton as ab
 
 
 fmtName="notext_tal"
-supportedTypes=[".mp3"]
+supportedTypes=[".mp3", ".wav", ".wma", ".ogg"]
 
 bReadMeta=False
 bPreloadMeta=False
