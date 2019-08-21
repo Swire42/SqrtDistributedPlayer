@@ -1027,7 +1027,8 @@ playDir=Directory()
 
 playlist=Playlist()
 playQueue=PlayQueue()
-airButton=ab.AirButton()
+if not bNoAirButton:
+    airButton=ab.AirButton()
 
 mode=ModePlayqueue()
 newMode=None
