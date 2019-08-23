@@ -21,6 +21,8 @@ if 'termux' in sys.prefix:
         def tick(self):
             result=[]
             while select.select([self.process.stdout], [], [], 0)[0] != []:
+                if self.process.poll() is not None:
+                    self.init()
                 line=self.process.stdout.readline().strip()
                 if '0'<=line<='9':
                     self.pushTime+=1
