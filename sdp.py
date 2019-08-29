@@ -159,9 +159,9 @@ else:
     playerProcess=subprocess.Popen('true') # no-op
 
 # in case of failure we still want to stop the player.
-def termPlayer():
-    playerProcess.terminate()
-atexit.register(termPlayer)
+def killPlayer():
+    playerProcess.kill()
+atexit.register(killPlayer)
 
 def isSong(filename):
     if filename is None: return False
@@ -366,6 +366,7 @@ class PlayQueue:
         self.bPaused=True
         self.cur=None
         self.fill()
+        playerProcess.send_signal(signal.SIGCONT)
         playerProcess.terminate()
 
     def resume(self):
