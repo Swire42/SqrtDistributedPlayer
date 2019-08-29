@@ -366,7 +366,8 @@ class PlayQueue:
         self.bPaused=True
         self.cur=None
         self.fill()
-        playerProcess.send_signal(signal.SIGCONT)
+        if os.name!='nt':
+            playerProcess.send_signal(signal.SIGCONT)
         playerProcess.terminate()
 
     def resume(self):
