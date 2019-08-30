@@ -7,6 +7,7 @@ import subprocess
 import random
 import math
 import signal
+import select
 
 import keyboard
 import termfmt as tfmt
@@ -143,7 +144,7 @@ def scoreFunc(size):
 
 ### System funcs
 def runAlone(fmt, arg):
-    return subprocess.Popen([arg if i=="{}" else i for i in fmt.split()], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    return subprocess.Popen([arg if i=="{}" else i for i in fmt.split()], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
 
 def runGetOutput(fmt, arg):
     p=subprocess.Popen([arg if i=="{}" else i for i in fmt.split()], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -151,6 +152,22 @@ def runGetOutput(fmt, arg):
 
 def clearTerminal():
     os.system('cls' if os.name == 'nt' else 'clear')
+
+def txt2sec(txt):
+    sec=0.
+    for part in txt.split(':'):
+        sec=sec*60+float(part)
+    return sec
+
+def sec2txt(sec):
+    txt=str(int(sec//3600)).zfill(2)+":"
+    sec=sec%3600
+    txt+=str(int(sec//60)).zfill(2)+":"
+    sec=sec%60
+    txt+=str(int(sec//1)).zfill(2)+"."
+    sec=sec%1
+    txt+=str(int(sec//0.01)).zfill(2)
+    return txt
 
 ### Playing vars & funcs
 if os.name=='nt':
@@ -329,6 +346,7 @@ class PlayQueue:
         self.cur=None
         self.bPaused=False
         self.bShow=False
+        self.timeSec=None
 
     def __del__(self):
         playerProcess.terminate()
@@ -341,6 +359,18 @@ class PlayQueue:
             self.play()
             if self.bShow:
                 mode.display()
+        if not self.bPaused and playerProcess.poll() is None:
+            while select.select([playerProcess.stdout], [], [], 0)[0] != []:
+                line=playerProcess.stdout.readline().strip()
+                if playTool=="sox":
+                    if line[0:1]=='I':
+                        i=0
+                        while line[i]!='%' and i<len(line):
+                            i+=1
+                        if i!=len(line):
+                            self.timeSec=txt2sec(line[i+2:i+13])
+                            self.displayStatus()
+
 
     def togglePause(self):
         if self.bPaused:
@@ -353,6 +383,7 @@ class PlayQueue:
 
     def play(self):
         self.bPaused=False
+        self.timeSec=None
         self.cur=None
         self.fill()
         if len(self.content):
@@ -364,6 +395,7 @@ class PlayQueue:
 
     def stop(self):
         self.bPaused=True
+        self.timeSec=None
         self.cur=None
         self.fill()
         if os.name!='nt':
@@ -383,11 +415,16 @@ class PlayQueue:
         playerProcess.send_signal(signal.SIGSTOP)
         #self.stop()
 
+    def displayStatus(self):
+        if (self.timeSec is not None):
+            print("\r"+sec2txt(self.timeSec), end="")
+
     def display(self):
         if self.getSize()==0:
             return displayStartPage()
 
         width, height=shutil.get_terminal_size()
+        height-=1
         txt=""
         if self.cur is not None:
             line=("# " if self.bPaused else "> ")+self.cur
@@ -401,11 +438,12 @@ class PlayQueue:
                 line=line[:width-3]+"..."
             txt+=line+"\n"
         clearTerminal()
-        print(txt.strip('\n'), end="", flush=True)
+        print(txt, end="", flush=True)
         #if self.cur is not None:
         #    print("# " if self.bPaused else "> ", self.cur, sep="")
         #for i in self.content:
         #    print("  ", i.desc(), sep="")
+        self.displayStatus()
 
     def getSize(self):
         return len(self.content)+int(self.cur is not None)
