@@ -369,7 +369,8 @@ class PlayQueue:
                             i+=1
                         if i!=len(line):
                             self.timeSec=txt2sec(line[i+2:i+13])
-                            self.displayStatus()
+                            if type(mode)==ModePlayqueue:
+                                self.displayStatus()
 
 
     def togglePause(self):
