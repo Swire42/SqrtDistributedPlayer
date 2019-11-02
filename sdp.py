@@ -26,6 +26,8 @@ bSavePower=False
 
 bNoAirButton=False
 
+miniSound=False
+
 try:
     from settings import*
     print("Loaded \"settings.py\".")
@@ -108,7 +110,10 @@ if rootPath[-1] in ['/', '\\']: rootPath=rootPath[:-1]
 if playTool=="vlc":
     playCmd="vlc --qt-start-minimized --play-and-exit {}"
 elif playTool=="sox":
-    playCmd="play {}"
+    if miniSound:
+        playCmd="play -v 0.05 {}"
+    else:
+        playCmd="play {}"
 else:
     print("Unsupported playing tool.")
     print("Supported: vlc, sox.")
@@ -742,8 +747,7 @@ class ModePlayqueue:
         playQueue.bShow=False
 
     def input(self, c):
-        global newMode
-        global playQueue
+        global newMode, playQueue, miniSound, playTool, playCmd
         if c=='h':
             newMode=ModeHelp
         if c==' ':
@@ -758,6 +762,12 @@ class ModePlayqueue:
             playDir=Directory()
             playQueue=PlayQueue()
             self.display()
+        if c=='m' and playTool=="sox":
+            miniSound=not miniSound
+            if miniSound:
+                playCmd="play -v 0.05 {}"
+            else:
+                playCmd="play {}"
         if c=='n':
             playQueue.play()
             self.display()
@@ -1030,6 +1040,7 @@ class ModeHelp:
 - [Space]      | Play/Pause (Pause=Stop when not available).
 - [p] Playlist | Edit the playlist.
 - [c] Clear    | Clear the playlist.
+- [m] Mini     | Low volume in sox (start new song for effect).
 - [n] Next     | Skip to next song.
 - [q] Quit     | Quit SDP.
 - [s] Stop     | Stop the music.
