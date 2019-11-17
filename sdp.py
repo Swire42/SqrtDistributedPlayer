@@ -144,7 +144,9 @@ if bReadMeta:
 
 
 def scoreFunc(size):
-    return round(math.sqrt(size))
+    #return round(math.sqrt(size))
+    #return round(math.sqrt(2*size-3/4))
+    return round(math.sqrt(2*size))
 
 
 ### System funcs
