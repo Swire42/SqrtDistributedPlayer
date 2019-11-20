@@ -1067,12 +1067,18 @@ class ModeLoad:
             self.display()
 
     def display(self):
-        clearTerminal()
-        for i in range(len(self.saveList)):
+        width, height=shutil.get_terminal_size()
+        self.updateView()
+
+        txt=""
+        for i in range(self.view, min(self.view+height, len(self.saveList))):
             curSId=str(i).zfill(self.idLen)
             if curSId.startswith(self.sId):
                 curSId=tfmt.underline+self.sId+tfmt.resetUnderline+curSId[len(self.sId):]
-            print(curSId, self.saveList[i])
+            txt+=curSId+" "+self.saveList[i]
+            if i!=self.view+height-1: txt+='\n'
+        clearTerminal()
+        print(txt, end="", flush=True)
 
 class ModeHelp:
     def __init__(self):
