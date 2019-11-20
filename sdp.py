@@ -764,6 +764,8 @@ class ModePlayqueue:
             playDir=Directory()
             playQueue=PlayQueue()
             self.display()
+        elif c=='l':
+            newMode=ModeLoad
         if c=='m' and playTool=="sox":
             miniSound=not miniSound
             if miniSound:
@@ -994,6 +996,8 @@ class ModeSave:
         elif c=='\n' and len(self.name)!=0:
             playlist.save(self.name)
             newMode=ModeAdd
+        elif c=='\x1b': # ESC
+            newMode=ModeAdd
         elif 'a'<=c<='z' or 'A'<=c<='Z' or '0'<=c<='9' or c in ['.']:
             self.name+=c
             self.display()
@@ -1005,25 +1009,70 @@ class ModeSave:
 class ModeLoad:
     def __init__(self):
         self.name=""
+        self.view=0
+        self.cursor=0
+        self.sId=""
+        self.saveList=[]
+        for f in os.scandir():
+            if f.name.endswith(".lst"):
+                self.saveList.append(f.name)
+        self.saveList.sort()
+        self.idLen=math.ceil(math.log10(len(self.saveList))) if self.saveList else 0
         self.display()
+
+    def typeNum(self, c):
+        if self.idLen==0: return
+
+        self.sId+=c
+        iId=int(self.sId)*(10**(self.idLen-len(self.sId)))
+        if iId>=len(self.saveList):
+            self.sId=''
+            iId=len(self.saveList)-1
+
+        self.cursor=iId+(10**(self.idLen-len(self.sId)))-1
+        self.updateView()
+        self.cursor=iId
+
+        if len(self.sId)==self.idLen:
+            self.load()
+
+    def updateView(self):
+        width, height=shutil.get_terminal_size()
+        self.view=min(self.view, max(0, len(self.saveList)-height)) # limit max view pos
+        self.view=min(self.view, self.cursor)                      # make sure we see cursor (go up)
+        self.view=max(self.view, self.cursor-height+1)             # make sure we see cursor (go down)
+
+    def load(self):
+        global newMode
+        global addMode_state
+        playlist.load(self.saveList[self.cursor])
+        addMode_state=ModeAdd_state()
+        if lastMode==ModePlayqueue:
+            addMode_state.add()
+        newMode=lastMode
 
     def input(self, c):
         global newMode
         global addMode_state
         if c=='\x7f': # Back
-            self.name=self.name[:-1]
+            self.sId=self.sId[:-1]
             self.display()
-        elif c=='\n' and len(self.name)!=0:
-            playlist.load(self.name)
-            addMode_state=ModeAdd_state()
+        elif c=='\x1b': # ESC
             newMode=ModeAdd
+        elif len(c)==1 and '0'<=c<='9':
+            self.typeNum(c)
+            self.display()
         elif 'a'<=c<='z' or 'A'<=c<='Z' or '0'<=c<='9' or c in ['.']:
             self.name+=c
             self.display()
 
     def display(self):
         clearTerminal()
-        print("Enter playlist name and press [Enter]\n>"+self.name, end="", flush=True)
+        for i in range(len(self.saveList)):
+            curSId=str(i).zfill(self.idLen)
+            if curSId.startswith(self.sId):
+                curSId=tfmt.underline+self.sId+tfmt.resetUnderline+curSId[len(self.sId):]
+            print(curSId, self.saveList[i])
 
 class ModeHelp:
     def __init__(self):
