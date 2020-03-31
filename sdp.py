@@ -801,10 +801,10 @@ class ModeAdd_state:
         playQueue=PlayQueue()
 
     def cd(self, d):
-        if d is 1:
+        if d == 1:
             if self.dirList[self.cursor].is_dir():
                 self.dir=self.getCursorPath()
-        elif d is -1:
+        elif d == -1:
             old=cutPath(self.dir)
             self.dir=parent(self.dir)
         else:
@@ -816,7 +816,7 @@ class ModeAdd_state:
         self.view=0
         self.sId=""
         self.cursor=0
-        if d is -1:
+        if d == -1:
             self.find(old)
 
     def getCursorPath(self):
