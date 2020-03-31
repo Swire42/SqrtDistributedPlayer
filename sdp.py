@@ -354,6 +354,7 @@ class PlayQueue:
         self.bPaused=False
         self.bShow=False
         self.timeSec=None
+        self.lenSec=None
 
     def __del__(self):
         playerProcess.terminate()
@@ -370,6 +371,10 @@ class PlayQueue:
             while select.select([playerProcess.stdout], [], [], 0)[0] != []:
                 line=playerProcess.stdout.readline().strip()
                 if playTool=="sox":
+                    if "Duration: " in line:
+                        k=line.index("Duration: ")+10
+                        self.lenSec=txt2sec(line[k:k+11])
+
                     if line[0:1]=='I':
                         i=0
                         while line[i]!='%' and i<len(line):
@@ -392,6 +397,7 @@ class PlayQueue:
     def play(self):
         self.bPaused=False
         self.timeSec=None
+        self.lenSec=None
         self.cur=None
         self.fill()
         if len(self.content):
@@ -404,6 +410,7 @@ class PlayQueue:
     def stop(self):
         self.bPaused=True
         self.timeSec=None
+        self.lenSec=None
         self.cur=None
         self.fill()
         if os.name!='nt':
@@ -424,8 +431,17 @@ class PlayQueue:
         #self.stop()
 
     def displayStatus(self):
-        if (self.timeSec is not None):
-            print("\r"+sec2txt(self.timeSec), end="")
+        if (self.timeSec is not None) and (self.lenSec is not None):
+            width, height=shutil.get_terminal_size()
+            barLen=width-24
+            bar=""
+            for k in range(barLen):
+                if (self.timeSec/self.lenSec)>(k/barLen):
+                    bar+="#"
+                else:
+                    bar+="-"
+
+            print("\r"+sec2txt(self.timeSec)+" "+bar+" "+sec2txt(self.lenSec), end="")
 
     def display(self):
         if self.getSize()==0:
