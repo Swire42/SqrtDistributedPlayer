@@ -150,7 +150,7 @@ def scoreFunc(size):
 
 
 ### System funcs
-def runAlone(fmt, arg):
+def runAlone(fmt, arg=""):
     return subprocess.Popen([arg if i=="{}" else i for i in fmt.split()], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
 
 def runGetOutput(fmt, arg):
@@ -163,7 +163,10 @@ def clearTerminal():
 def txt2sec(txt):
     sec=0.
     for part in txt.split(':'):
-        sec=sec*60+float(part)
+        try:
+            sec=sec*60+float(part)
+        except:
+            sec=sec*60
     return sec
 
 def sec2txt(sec):
@@ -355,6 +358,7 @@ class PlayQueue:
         self.bShow=False
         self.timeSec=None
         self.lenSec=None
+        self.resumeSeek=False
 
     def __del__(self):
         playerProcess.terminate()
@@ -401,8 +405,8 @@ class PlayQueue:
         self.cur=None
         self.fill()
         if len(self.content):
-            self.cur=self.content[0].desc()
-            self.content[0].play()
+            self.cur=self.content[0]
+            self.cur.play()
             self.content.pop(0)
         else:
             self.bPaused=True
@@ -417,11 +421,35 @@ class PlayQueue:
             playerProcess.send_signal(signal.SIGCONT)
         playerProcess.terminate()
 
+    def seekAbs(self, newTime):
+        if playTool!="sox":
+            return
+        self.pause()
+        if self.timeSec is not None:
+            self.resumeSeek=True
+            self.timeSec=newTime
+            if self.timeSec<0:
+                self.timeSec=0
+            elif self.lenSec is not None and self.timeSec>self.lenSec:
+                self.timeSec=self.lenSec
+
+            if type(mode)==ModePlayqueue:
+                self.displayStatus()
+
+    def seekRel(self, delta):
+        if self.timeSec is not None:
+            self.seekAbs(self.timeSec+delta)
+
     def resume(self):
         if os.name=='nt':
             return self.play()
-        self.bPaused=False
-        playerProcess.send_signal(signal.SIGCONT)
+        if self.resumeSeek and playTool=="sox" and self.timeSec is not None:
+            self.bPaused=False
+            self.resumeSeek=False
+            self.cur.play(self.timeSec)
+        else:
+            self.bPaused=False
+            playerProcess.send_signal(signal.SIGCONT)
 
     def pause(self):
         if os.name=='nt':
@@ -451,7 +479,7 @@ class PlayQueue:
         height-=1
         txt=""
         if self.cur is not None:
-            line=("# " if self.bPaused else "> ")+self.cur
+            line=("# " if self.bPaused else "> ")+self.cur.desc()
             if len(line)>width:
                 line=line[:width-3]+"..."
             txt+=line+"\n"
@@ -526,7 +554,7 @@ class Song:
                 fmt=songFmtTAL
             return fmt.replace("{T}", str(self.title)).replace("{A}", str(self.artist)).replace("{L}", str(self.album))
 
-    def play(self):
+    def play(self, seek=0):
         if self.filename is None:
             print("Error - no filename")
             playQueue.stop()
@@ -534,7 +562,10 @@ class Song:
         global playerProcess
         if playerProcess.poll() is None:
             playerProcess.terminate()
-        playerProcess=runAlone(playCmd, self.filename)
+        if playTool=="sox" and seek!=0:
+            playerProcess=runAlone(playCmd+" trim "+str(seek), self.filename)
+        else:
+            playerProcess=runAlone(playCmd, self.filename)
 
     def addToQueue(self):
         playQueue.append(self)
@@ -768,12 +799,12 @@ class ModePlayqueue:
         global newMode, playQueue, miniSound, playTool, playCmd
         if c=='h':
             newMode=ModeHelp
-        if c==' ':
+        elif c==' ':
             playQueue.togglePause()
             self.display()
-        if c=='p':
+        elif c=='p':
             newMode=ModeAdd
-        if c=='c':
+        elif c=='c':
             global playDir
             global addMode_state
             addMode_state=ModeAdd_state()
@@ -782,22 +813,28 @@ class ModePlayqueue:
             self.display()
         elif c=='l':
             newMode=ModeLoad
-        if c=='m' and playTool=="sox":
+        elif c=='m' and playTool=="sox":
             miniSound=not miniSound
             if miniSound:
                 playCmd="play -v 0.05 {}"
             else:
                 playCmd="play {}"
-        if c=='n':
+        elif c=='n':
             playQueue.play()
             self.display()
-        if c=='q':
+        elif c=='q':
             playQueue.stop()
             print("\nQuit")
             exit(0)
-        if c=='s':
+        elif c=='s':
             playQueue.stop()
             self.display()
+        elif c=='t':
+            newMode=ModeSeek
+        elif c=='\x1b[C' or c=='\xe0M': # right arrow
+            playQueue.seekRel(+1)
+        elif c=='\x1b[D' or c=='\xe0K': # left arrow
+            playQueue.seekRel(-1)
 
     def display(self):
         playQueue.display()
@@ -1095,6 +1132,34 @@ class ModeLoad:
             if i!=self.view+height-1: txt+='\n'
         clearTerminal()
         print(txt, end="", flush=True)
+
+class ModeSeek:
+    def __init__(self):
+        self.timeTxt=""
+        width, height=shutil.get_terminal_size()
+        print("\r"+" "*(width), end="")
+        self.display()
+
+    def input(self, c):
+        global newMode
+        if c=='\x7f': # Back
+            self.timeTxt=self.timeTxt[:-1]
+            self.display()
+        elif c=='\n' and len(self.timeTxt)!=0:
+            if self.timeTxt[0] in ['+','-']:
+                playQueue.seekRel(txt2sec(self.timeTxt))
+            else:
+                playQueue.seekAbs(txt2sec(self.timeTxt))
+            playQueue.resume()
+            newMode=ModePlayqueue
+        elif c=='\x1b': # ESC
+            newMode=ModePlayqueue
+        elif '0'<=c<='9' or c in ['.',':','+','-']:
+            self.timeTxt+=c
+            self.display()
+
+    def display(self):
+        print("\rgoto: >"+self.timeTxt, end="", flush=True)
 
 class ModeHelp:
     def __init__(self):
