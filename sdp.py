@@ -421,10 +421,11 @@ class PlayQueue:
             playerProcess.send_signal(signal.SIGCONT)
         playerProcess.terminate()
 
-    def seekAbs(self, newTime):
+    def seekAbs(self, newTime, pause=False):
         if playTool!="sox":
             return
-        self.pause()
+        if pause:
+            self.pause()
         if self.timeSec is not None:
             self.resumeSeek=True
             self.timeSec=newTime
@@ -433,12 +434,15 @@ class PlayQueue:
             elif self.lenSec is not None and self.timeSec>self.lenSec:
                 self.timeSec=self.lenSec
 
+            if not self.bPaused:
+                self.resume()
+
             if type(mode)==ModePlayqueue:
                 self.displayStatus()
 
-    def seekRel(self, delta):
+    def seekRel(self, delta, pause=True):
         if self.timeSec is not None:
-            self.seekAbs(self.timeSec+delta)
+            self.seekAbs(self.timeSec+delta, pause)
 
     def resume(self):
         if os.name=='nt':
@@ -819,6 +823,7 @@ class ModePlayqueue:
                 playCmd="play -v 0.05 {}"
             else:
                 playCmd="play {}"
+            playQueue.seekRel(0, False)
         elif c=='n':
             playQueue.play()
             self.display()
@@ -829,12 +834,12 @@ class ModePlayqueue:
         elif c=='s':
             playQueue.stop()
             self.display()
-        elif c=='t':
+        elif c=='g':
             newMode=ModeSeek
         elif c=='\x1b[C' or c=='\xe0M': # right arrow
-            playQueue.seekRel(+1)
+            playQueue.seekRel(+1, False)
         elif c=='\x1b[D' or c=='\xe0K': # left arrow
-            playQueue.seekRel(-1)
+            playQueue.seekRel(-1, False)
 
     def display(self):
         playQueue.display()
@@ -1147,10 +1152,9 @@ class ModeSeek:
             self.display()
         elif c=='\n' and len(self.timeTxt)!=0:
             if self.timeTxt[0] in ['+','-']:
-                playQueue.seekRel(txt2sec(self.timeTxt))
+                playQueue.seekRel(txt2sec(self.timeTxt), False)
             else:
                 playQueue.seekAbs(txt2sec(self.timeTxt))
-            playQueue.resume()
             newMode=ModePlayqueue
         elif c=='\x1b': # ESC
             newMode=ModePlayqueue
@@ -1178,10 +1182,14 @@ class ModeHelp:
 - [Space]      | Play/Pause (Pause=Stop when not available).
 - [p] Playlist | Edit the playlist.
 - [c] Clear    | Clear the playlist.
-- [m] Mini     | Low volume in sox (start new song for effect).
+- [m] Mini     | Toggle low volume. (sox)
 - [n] Next     | Skip to next song.
 - [q] Quit     | Quit SDP.
 - [s] Stop     | Stop the music.
+- [g] Goto     | Seek to a given time. (sox)
+- [Left]       | -1 sec. (sox)
+- [Right]      | +1 sec. (sox)
+Goto examples:  0  132.5  00:00:01:11.2  2:  1::  +12  -1.5
 ### Press any key to continue ###''')
         elif lastMode==ModeAdd:
             print('''\
