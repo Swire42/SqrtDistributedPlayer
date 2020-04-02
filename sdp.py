@@ -359,6 +359,9 @@ class PlayQueue:
         self.timeSec=None
         self.lenSec=None
         self.resumeSeek=False
+        self.ABRepeat=False
+        self.repA=None
+        self.repB=None
 
     def __del__(self):
         playerProcess.terminate()
@@ -367,8 +370,12 @@ class PlayQueue:
         self.content.append(x)
 
     def tick(self):
-        if not self.bPaused and playerProcess.poll() is not None:
-            self.play()
+        if not self.bPaused and playerProcess.poll() is not None: # song ended
+            if self.ABRepeat:
+                self.seekAbs(self.repA or 0)
+            else:
+                self.play()
+
             if self.bShow:
                 mode.display()
         if not self.bPaused and playerProcess.poll() is None:
@@ -385,6 +392,9 @@ class PlayQueue:
                             i+=1
                         if i!=len(line):
                             self.timeSec=txt2sec(line[i+2:i+13])
+                            if self.ABRepeat and self.repB is not None and self.timeSec>self.repB:
+                                self.seekAbs(self.repA or 0)
+
                             if type(mode)==ModePlayqueue:
                                 self.displayStatus()
 
@@ -402,6 +412,8 @@ class PlayQueue:
         self.bPaused=False
         self.timeSec=None
         self.lenSec=None
+        self.repA=None
+        self.repB=None
         self.cur=None
         self.fill()
         if len(self.content):
@@ -415,6 +427,8 @@ class PlayQueue:
         self.bPaused=True
         self.timeSec=None
         self.lenSec=None
+        self.repA=None
+        self.repB=None
         self.cur=None
         self.fill()
         if os.name!='nt':
@@ -462,13 +476,33 @@ class PlayQueue:
         playerProcess.send_signal(signal.SIGSTOP)
         #self.stop()
 
+    def setRepA(self):
+        self.repA=self.timeSec
+        if (self.repA or 0)>=(self.repB or self.lenSec):
+            self.repB=None
+        self.ABRepeat=True
+        if type(mode)==ModePlayqueue:
+            self.displayStatus()
+
+    def setRepB(self):
+        self.repB=self.timeSec
+        if (self.repA or 0)>=(self.repB or self.lenSec):
+            self.repA=None
+        self.ABRepeat=True
+        if type(mode)==ModePlayqueue:
+            self.displayStatus()
+
     def displayStatus(self):
         if (self.timeSec is not None) and (self.lenSec is not None):
             width, height=shutil.get_terminal_size()
             barLen=width-24
             bar=""
             for k in range(barLen):
-                if (self.timeSec/self.lenSec)>(k/barLen):
+                if self.ABRepeat and (k/barLen)<=((self.repA or 0)/self.lenSec)<=((k+1)/barLen):
+                    bar+="["
+                elif self.ABRepeat and (k/barLen)<=((self.repB or self.lenSec)/self.lenSec)<=((k+1)/barLen):
+                    bar+="]"
+                elif ((self.repA if self.ABRepeat and self.repA else 0)/self.lenSec)<=(k/barLen)<=(self.timeSec/self.lenSec):
                     bar+="#"
                 else:
                     bar+="-"
@@ -840,6 +874,12 @@ class ModePlayqueue:
             playQueue.seekRel(+1, False)
         elif c=='\x1b[D' or c=='\xe0K': # left arrow
             playQueue.seekRel(-1, False)
+        elif c=='r':
+            playQueue.ABRepeat=not playQueue.ABRepeat
+        elif c=='[':
+            playQueue.setRepA()
+        elif c==']':
+            playQueue.setRepB()
 
     def display(self):
         playQueue.display()
@@ -1187,9 +1227,11 @@ class ModeHelp:
 - [q] Quit     | Quit SDP.
 - [s] Stop     | Stop the music.
 - [g] Goto     | Seek to a given time. (sox)
+Goto examples:  0  132.5  00:00:01:11.2  2:  1::  +12  -1.5
 - [Left]       | -1 sec. (sox)
 - [Right]      | +1 sec. (sox)
-Goto examples:  0  132.5  00:00:01:11.2  2:  1::  +12  -1.5
+- [r]          | Toggle repeat. (sox)
+- [Brackets]   | Set repeat points. (sox)
 ### Press any key to continue ###''')
         elif lastMode==ModeAdd:
             print('''\
