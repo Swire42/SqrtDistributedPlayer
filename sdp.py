@@ -871,9 +871,9 @@ class ModePlayqueue:
         elif c=='g':
             newMode=ModeSeek
         elif c=='\x1b[C' or c=='\xe0M': # right arrow
-            playQueue.seekRel(+1, False)
+            playQueue.seekRel(+5, False)
         elif c=='\x1b[D' or c=='\xe0K': # left arrow
-            playQueue.seekRel(-1, False)
+            playQueue.seekRel(-5, False)
         elif c=='r':
             playQueue.ABRepeat=not playQueue.ABRepeat
         elif c=='[':
@@ -1228,8 +1228,8 @@ class ModeHelp:
 - [s] Stop     | Stop the music.
 - [g] Goto     | Seek to a given time. (sox)
 Goto examples:  0  132.5  00:00:01:11.2  2:  1::  +12  -1.5
-- [Left]       | -1 sec. (sox)
-- [Right]      | +1 sec. (sox)
+- [Left]       | -5 sec. (sox)
+- [Right]      | +5 sec. (sox)
 - [r]          | Toggle repeat. (sox)
 - [Brackets]   | Set repeat points. (sox)
 ### Press any key to continue ###''')
