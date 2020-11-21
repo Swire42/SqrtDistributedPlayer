@@ -1014,9 +1014,16 @@ class ModeAdd_state:
 
             txt+=status
 
+
             if self.dirList[i].is_dir(): txt+=tfmt.bgColorRGB(64,64,64)
             elif not isSong(self.dirList[i].name): txt+=tfmt.dim
-            txt+=self.dirList[i].name
+
+            name=self.dirList[i].name
+            if len(name)>width-2-self.idLen:
+                w=width-2-self.idLen
+                name=name[:w//2-1]+"..."+name[(-w+4)//2:]
+
+            txt+=name
             if i!=self.view+height-1: txt+='\n'
             txt+=tfmt.resetAll
 
