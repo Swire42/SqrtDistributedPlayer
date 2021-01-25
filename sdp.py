@@ -1039,6 +1039,7 @@ class ModeAdd:
     def input(self, c):
         global newMode
         global addMode_state
+        global bRepeat
         if c=='h':
             newMode=ModeHelp
         if c=='\x1b': # ESC
@@ -1075,7 +1076,12 @@ class ModeAdd:
             addMode_state.display()
         elif c=='l':
             newMode=ModeLoad
+        elif c=='o':
+            bRepeat=False
+            addMode_state.add()
+            newMode=ModePlayqueue
         elif c=='p':
+            bRepeat=True
             addMode_state.add()
             newMode=ModePlayqueue
         elif c=='q':
@@ -1248,15 +1254,16 @@ Goto examples:  0  132.5  00:00:01:11.2  2:  1::  +12  -1.5
 - [Up/Down] | Change selected item.
 - [Back]    | Erase/parent directory.
 - [Left]    | Parent directory.
-- [Enter]   | Enter selected directory
-- [Right]   | Enter selected directory
+- [Enter]   | Enter selected directory.
+- [Right]   | Enter selected directory.
 - [Number]  | Select/Deselect corresponding item.
 - [a/Space] | Mark added/unmark.
 - [d/Del]   | Mark removed.
-- [l] Load  | Load saved playlist
-- [p] Apply | Apply changes.
+- [l] Load  | Load saved playlist.
+- [p] Apply | Apply changes and loop play.
+- [o] Once  | Apply changes and play once.
 - [q] Quit  | Quit SDP.
-- [s] Save  | Save playlist
+- [s] Save  | Save playlist.
 ### Press any key to continue ###''')
 
 
