@@ -527,6 +527,8 @@ class PlayQueue:
             if len(line)>width:
                 line=line[:width-3]+"..."
             txt+=line+"\n"
+        if len(self.content)<height:
+            txt+="\n"*(height-len(self.content))
         clearTerminal()
         print(txt, end="", flush=True)
         #if self.cur is not None:
