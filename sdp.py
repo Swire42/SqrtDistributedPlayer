@@ -842,7 +842,7 @@ class ModePlayqueue:
         elif c==' ':
             playQueue.togglePause()
             self.display()
-        elif c=='p':
+        elif c=='o' or c=='p':
             newMode=ModeAdd
         elif c=='c':
             global playDir
@@ -1236,6 +1236,7 @@ class ModeHelp:
 - [h] Help     | Display help page for the current mode.
 - [Space]      | Play/Pause (Pause=Stop when not available).
 - [p] Playlist | Edit the playlist.
+- [o] Once     | Alias for [p].
 - [c] Clear    | Clear the playlist.
 - [m] Mini     | Toggle low volume. (sox)
 - [n] Next     | Skip to next song.
