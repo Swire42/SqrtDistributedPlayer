@@ -477,20 +477,22 @@ class PlayQueue:
         #self.stop()
 
     def setRepA(self):
-        self.repA=self.timeSec
-        if (self.repA or 0)>=(self.repB or self.lenSec):
-            self.repB=None
-        self.ABRepeat=True
-        if type(mode)==ModePlayqueue:
-            self.displayStatus()
+        if (self.lenSec is not None):
+            self.repA=self.timeSec
+            if (self.repA or 0)>=(self.repB or self.lenSec):
+                self.repB=None
+            self.ABRepeat=True
+            if type(mode)==ModePlayqueue:
+                self.displayStatus()
 
     def setRepB(self):
-        self.repB=self.timeSec
-        if (self.repA or 0)>=(self.repB or self.lenSec):
-            self.repA=None
-        self.ABRepeat=True
-        if type(mode)==ModePlayqueue:
-            self.displayStatus()
+        if (self.lenSec is not None):
+            self.repB=self.timeSec
+            if (self.repA or 0)>=(self.repB or self.lenSec):
+                self.repA=None
+            self.ABRepeat=True
+            if type(mode)==ModePlayqueue:
+                self.displayStatus()
 
     def displayStatus(self):
         if (self.timeSec is not None) and (self.lenSec is not None):
