@@ -964,6 +964,8 @@ class ModeAdd_state:
     def typeNum(self, c):
         if self.idLen==0: return
 
+        if self.sId=='' and int(c)*(10**(self.idLen-1))>=len(self.dirList):
+            self.typeNum('0')
         self.sId+=c
         iId=int(self.sId)*(10**(self.idLen-len(self.sId)))
         if iId>=len(self.dirList):
