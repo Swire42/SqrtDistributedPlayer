@@ -894,13 +894,16 @@ class ModeAdd_state:
         self.cd(rootPath)
         self.addList=[]
 
-    def add(self):
+    def add(self, doClear=True):
         global playQueue
         global playDir
-        playQueue.stop()
+        if doClear: playQueue.stop()
         playDir=Directory()
         playDir.append(Directory(playlist.rootDir(), False))
-        playQueue=PlayQueue()
+        if doClear:
+            playQueue=PlayQueue()
+        else:
+            playQueue.fill()
 
     def cd(self, d):
         if d == 1:
@@ -1083,8 +1086,9 @@ class ModeAdd:
         elif c=='l':
             newMode=ModeLoad
         elif c=='o':
+            doClear=bRepeat # if already in no repeat mode, append songs
             bRepeat=False
-            addMode_state.add()
+            addMode_state.add(doClear)
             newMode=ModePlayqueue
         elif c=='p':
             bRepeat=True
