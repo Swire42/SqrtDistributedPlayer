@@ -259,6 +259,7 @@ class Playlist:
         if name[-4:]!=".lst": name+=".lst"
         f=open(name, 'w')
         f.writelines("+%s\n" % i for i in self.include)
+        f.writelines("-%s\n" % i for i in self.exclude)
         f.close()
 
     def load(self, name):
