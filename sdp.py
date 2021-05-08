@@ -367,6 +367,9 @@ class PlayQueue:
     def __del__(self):
         playerProcess.terminate()
 
+    def empty(self):
+        return (self.cur is None) and (len(self.content)==0)
+
     def append(self, x):
         self.content.append(x)
 
@@ -422,7 +425,7 @@ class PlayQueue:
             self.cur.play()
             self.content.pop(0)
         else:
-            self.bPaused=True
+            self.stop()
 
     def stop(self):
         self.bPaused=True
@@ -904,7 +907,8 @@ class ModeAdd_state:
         if doClear:
             playQueue=PlayQueue()
         else:
-            playQueue.fill()
+            if playQueue.empty(): playQueue.play()
+            else: playQueue.fill()
 
     def cd(self, d):
         if d == 1:
