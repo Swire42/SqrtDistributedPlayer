@@ -382,8 +382,8 @@ class PlayQueue:
 
             if self.bShow:
                 mode.display()
-        if not self.bPaused and playerProcess.poll() is None:
-            while select.select([playerProcess.stdout], [], [], 0)[0] != []:
+        if not self.bPaused:
+            while playerProcess.poll() is None and select.select([playerProcess.stdout], [], [], 0)[0] != []:
                 line=playerProcess.stdout.readline().strip()
                 if playTool=="sox":
                     if "Duration: " in line:
